@@ -1,0 +1,12 @@
+# Editor
+.idea/
+.fleet/
+*.kate-swp
+
+# Build and dependencies
+gradle/
+.gradle/
+build/
+gradlew
+gradlew.bat
+gradle
