@@ -15,8 +15,6 @@ public class MemberManager implements Multicaster {
     private final int selfId;
     private final ActorRef selfRef;
     private HashMap<Integer, ActorRef> memberList;
-
-    private OperationMode operationMode = OperationMode.STANDARD;
     private HashMap<Integer, ActorRef> oldMemberList = new HashMap<>();
 
 

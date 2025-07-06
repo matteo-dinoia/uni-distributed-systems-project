@@ -19,9 +19,9 @@ public class Node extends AbstractActor {
         RECOVERING;
 
         boolean isValidChange(NodeState nextState) {
-            if (this == ALIVE) {
+            /*if (this == ALIVE) {
                 return nextState == NodeState.CRASHED || nextState == NodeState.JOINING;
-            }
+            }*/
             // TODO
             return false;
         }
@@ -55,7 +55,7 @@ public class Node extends AbstractActor {
     // TODO
     @Override
     public Receive createReceive() {
-        switch (state) {
+        /* TODO switch (state) {
             case STANDARD -> {
             }
             case CRASHED -> {
@@ -66,7 +66,7 @@ public class Node extends AbstractActor {
             }
             case RECOVERING -> {
             }
-        }
+        }*/
         return receiveBuilder()
                 // handling client.DataMsg
                 .match(DataMsg.GetMsg.class, (msg) -> getActionator(msg.requestId).handleGet(sender(), msg))
@@ -98,7 +98,7 @@ public class Node extends AbstractActor {
 
     private void handleInitialMembers(StatusMsg.InitialMembers msg) {
         changeState(NodeState.ALIVE);
-        this.memberList = msg.initial;
+        this.memberManager.setMemberList(msg.initial);
     }
 
     private void handleJoin(StatusMsg.Join msg) {
@@ -108,10 +108,5 @@ public class Node extends AbstractActor {
     private void handleLeave(StatusMsg.Leave msg) {
         changeState(NodeState.LEAVING);
         //TODO
-    }
-
-    private void handleRecover(StatusMsg.Recover msg) {
-        changeState(NodeState.RECOVERING);
-
     }
 }
