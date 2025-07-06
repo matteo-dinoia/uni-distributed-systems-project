@@ -12,10 +12,10 @@ repositories {
 }
 
 def versions = [
-        ScalaBinary: "2.13",
-        AkkaVersion: "2.9.0",
+        ScalaBinary   : "2.13",
+        AkkaVersion   : "2.9.0",
         LogBackVersion: "1.2.3",
-        JunitVersion: "4.13.1"
+        JunitVersion  : "4.13.1"
 ]
 
 dependencies {
@@ -31,7 +31,7 @@ compileJava {
     options.compilerArgs += ["-Xlint:deprecation"]
 }
 
-mainClassName = "CausalDelivery"
+mainClassName = "Main"
 
 run {
     standardInput = System.in

@@ -7,8 +7,9 @@ import java.util.Collections;
 import java.util.List;
 
 
-public class CausalDelivery {
+public class Main {
     final private static int N_LISTENERS = 10; // number of listening actors
+
 
     public static void main(String[] args) {
 
@@ -55,6 +56,7 @@ public class CausalDelivery {
         group.get(2).tell(new Chatter.StartChatMsg(), null);
         try {
             System.out.println(">>> Wait for the chats to stop and press ENTER <<<");
+            //noinspection ResultOfMethodCallIgnored
             System.in.read();
 
             // after chats stop, send actors a message to print their logs
@@ -63,8 +65,9 @@ public class CausalDelivery {
                 peer.tell(msg, null);
             }
             System.out.println(">>> Press ENTER to exit <<<");
+            //noinspection ResultOfMethodCallIgnored
             System.in.read();
-        } catch (IOException ioe) {
+        } catch (IOException _) {
         }
         system.terminate();
     }
