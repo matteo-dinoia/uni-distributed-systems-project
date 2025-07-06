@@ -1,22 +1,28 @@
 package node;
 
 import akka.actor.ActorRef;
-import messages.ClientMsgs;
 
 import java.io.Serializable;
 import java.util.*;
 
+@SuppressWarnings("unused")
 public class MemberManager implements Multicaster {
     public static final int N = 4;
     //public static final int W = 3;
     //public static final int R = 2;
 
     private static final Random rnd = new Random();
-    private final ActorRef selfActionRef;
-    private final HashMap<Integer, ActorRef> memberList;
+    private final int selfId;
+    private final ActorRef selfRef;
+    private HashMap<Integer, ActorRef> memberList;
 
-    public MemberManager(ActorRef selfActionRef) {
-        this.selfActionRef = selfActionRef;
+    private OperationMode operationMode = OperationMode.STANDARD;
+    private HashMap<Integer, ActorRef> oldMemberList = new HashMap<>();
+
+
+    public MemberManager(int selfId, ActorRef selfRef) {
+        this.selfId = selfId;
+        this.selfRef = selfRef;
         this.memberList = new HashMap<>();
     }
 
@@ -43,14 +49,21 @@ public class MemberManager implements Multicaster {
         return result;
     }
 
+    private void multicastToListOfMember(List<ActorRef> dests, Serializable m) {
+        // randomly arrange peers
+        Collections.shuffle(dests);
+
+        for (ActorRef p : dests)
+            sendTo(p, m);
+    }
+
     @Override
     public void multicast(Serializable m) {
         multicastToListOfMember(new ArrayList<>(memberList.values()), m);
     }
 
     @Override
-    public void send(ActorRef destination, Serializable m) throws Exception {
-        // TODO check error
+    public void send(ActorRef destination, Serializable m) {
         sendTo(destination, m);
     }
 
@@ -59,13 +72,6 @@ public class MemberManager implements Multicaster {
         multicastToListOfMember(this.obtainResponsibleForData(key), m);
     }
 
-    private void multicastToListOfMember(List<ActorRef> dests, Serializable m) {
-        // randomly arrange peers
-        Collections.shuffle(dests);
-
-        for (ActorRef p : dests)
-            sendTo(p, m);
-    }
 
     private void sendTo(ActorRef dest, Serializable m) {
         // simulate network delays using sleep
@@ -76,10 +82,6 @@ public class MemberManager implements Multicaster {
         }
 
         // It is allowed sending to himself
-        dest.tell(m, this.selfActionRef);
-    }
-
-    public void handle(ClientMsgs.StatusMsg msg) {
-        // TODO implement
+        dest.tell(m, this.selfRef);
     }
 }
