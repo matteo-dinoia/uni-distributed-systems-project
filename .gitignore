@@ -2,6 +2,7 @@
 .idea/
 .fleet/
 *.kate-swp
+00-notes/
 
 # Build and dependencies
 gradle/
