@@ -1,12 +1,10 @@
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.Props;
 
-import java.io.Serializable;
-import java.util.List;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.io.IOException;
+import java.util.List;
 
 
 public class CausalDelivery {
