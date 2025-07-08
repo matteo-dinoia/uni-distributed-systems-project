@@ -33,7 +33,7 @@ public class Node extends AbstractActor {
             } else if (this == JOINING) {
                 return nextState == NodeState.ALIVE;
             } else if (this == LEAVING) {
-                return nextState == NodeState.ALIVE || nodeState == NodeState.LEFT;
+                return nextState == NodeState.ALIVE || nextState == NodeState.LEFT;
             } else if (this == RECOVERING) {
                 return nextState == NodeState.ALIVE;
             }
