@@ -24,6 +24,44 @@ public class MemberManager implements Multicaster {
         this.memberList = new HashMap<>();
     }
 
+    /*
+     * Used in the leaving procedure:
+     *
+     * Similar to obtainResponsibleForData() but computes the future responsible
+     * nodes assuming that the specified leavingNode will no longer be part of the system.
+     * It temporarily removes the leavingNode from the current member list before
+     * computing the responsible nodes for the given key.
+     *
+     * This allows the leaving node to proactively transfer its data only to the nodes
+     * that will become responsible after its departure.
+     */
+    public List<ActorRef> getFutureResponsibleFor(int key, ActorRef leavingNode) {
+        HashMap<Integer, ActorRef> modified = new HashMap<>(memberList);
+        modified.values().removeIf(a -> a.equals(leavingNode));
+
+        assert modified.size() >= N;
+
+        ArrayList<ActorRef> result = new ArrayList<>();
+        int remaining = N;
+
+        for (var ref : modified.entrySet()) {
+            if (remaining > 0 && ref.getKey() >= key) {
+                remaining--;
+                result.add(ref.getValue());
+            }
+        }
+
+        for (var ref : modified.entrySet()) {
+            if (remaining > 0) {
+                remaining--;
+                result.add(ref.getValue());
+            }
+        }
+
+        return Collections.unmodifiableList(result);
+    }
+
+
     private ArrayList<ActorRef> obtainResponsibleForData(int key) {
         assert memberList.size() >= N;
 
@@ -44,7 +82,7 @@ public class MemberManager implements Multicaster {
             }
         }
 
-        return result;
+        return result; /////////////////////////////////////////////////////////////////// <- Better use collections.unmodifiablelist(result) ????
     }
 
     private void multicastToListOfMember(List<ActorRef> dests, Serializable m) {
@@ -82,4 +120,21 @@ public class MemberManager implements Multicaster {
         // It is allowed sending to himself
         dest.tell(m, this.selfRef);
     }
+
+    //Are those the right place? these above methods handle the recovery procedure
+    //placed in Node.java
+    public void setMemberList(HashMap<Integer, ActorRef> members) {
+        this.oldMemberList = this.memberList;
+        this.memberList = members;
+    }
+
+    public HashMap<Integer, ActorRef> getMemberList() {
+        return this.memberList;
+    }
+
+    public boolean isResponsible(ActorRef node, int key) {
+        List<ActorRef> responsible = obtainResponsibleForData(key);
+        return responsible.contains(node);
+    }
+
 }

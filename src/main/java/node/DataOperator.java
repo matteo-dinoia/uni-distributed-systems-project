@@ -13,5 +13,19 @@ public class DataOperator {
         this.version = 0;
     }
 
+    public DataOperator(String value) {
+        this.value = value;
+        this.version = 0;
+        this.multicaster = null;
+    }
+
+    public String get() {
+        return value;
+    }
+
+    public int getVersion() {
+        return this.version;
+    }
+
 
 }

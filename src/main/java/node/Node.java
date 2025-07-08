@@ -5,30 +5,47 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import messages.client.DataMsg;
 import messages.client.StatusMsg;
+import messages.node_operation.NodeMsg;
 
 import java.util.HashMap;
+import java.util.List;
 
 @SuppressWarnings("unused")
 public class Node extends AbstractActor {
+    // TODO NEED TIMEOUT
     private enum NodeState {
         TO_START,
         ALIVE,
         CRASHED,
         JOINING,
         LEAVING,
-        RECOVERING;
+        RECOVERING,
+        LEFT;
 
+        //TODO switch
         boolean isValidChange(NodeState nextState) {
-            /*if (this == ALIVE) {
-                return nextState == NodeState.CRASHED || nextState == NodeState.JOINING;
-            }*/
-            // TODO
+            if (this == TO_START) {
+                return nextState == NodeState.JOINING || nextState == NodeState.ALIVE;
+            } else if (this == ALIVE) {
+                return nextState == NodeState.CRASHED || nextState == NodeState.LEAVING;
+            } else if (this == CRASHED) {
+                return nextState == NodeState.RECOVERING;
+            } else if (this == JOINING) {
+                return nextState == NodeState.ALIVE;
+            } else if (this == LEAVING) {
+                return nextState == NodeState.ALIVE || nodeState == NodeState.LEFT;
+            } else if (this == RECOVERING) {
+                return nextState == NodeState.ALIVE;
+            }
+
             return false;
         }
+
     }
 
     private NodeState state;
     private final MemberManager memberManager;
+    private final Multicaster multicaster;
     // Map client to its own controller
     private final HashMap<ActorRef, Actionator> actionators;
     // Map key to value and its own operator
@@ -36,6 +53,7 @@ public class Node extends AbstractActor {
 
     public Node(int nodeId) {
         this.memberManager = new MemberManager(nodeId, self());
+        this.multicaster = this.memberManager;
         this.actionators = new HashMap<>();
         this.data = new HashMap<>();
         this.state = NodeState.TO_START;
@@ -75,13 +93,15 @@ public class Node extends AbstractActor {
                 .match(StatusMsg.Join.class, this::handleJoin)
                 .match(StatusMsg.Leave.class, this::handleLeave)
                 .match(StatusMsg.Crash.class, this::handleCrash)
+                .match(StatusMsg.Recover.class, this::handleRecover)
+                .match(NodeMsg.BootstrapRequest.class, (msg) -> this.handleBootstrapRequest(sender(), msg))
+                .match(NodeMsg.BootstrapResponse.class, (msg) -> this.handleBootstrapResponse(sender(), msg))
                 .match(StatusMsg.InitialMembers.class, this::handleInitialMembers)
                 // TODO fix For now invalid client (main) message are dropped
                 .build();
     }
 
     private void changeState(NodeState nextState) {
-        // TODO instead of crashing, return invalid
         assert this.state.isValidChange(nextState);
         this.state = nextState;
         getContext().become(createReceive());
@@ -91,22 +111,94 @@ public class Node extends AbstractActor {
         changeState(NodeState.CRASHED);
     }
 
-    private void handleRecover(StatusMsg.Recover msg) {
-        changeState(NodeState.RECOVERING);
-
-    }
-
     private void handleInitialMembers(StatusMsg.InitialMembers msg) {
         changeState(NodeState.ALIVE);
-        this.memberManager.setMemberList(msg.initial);
+        // TODO
     }
 
     private void handleJoin(StatusMsg.Join msg) {
         changeState(NodeState.JOINING);
+        multicaster.send(msg.bootstrappingPear, new NodeMsg.BootstrapRequest(msg.requestId));
     }
 
+
+    // ///////////////////// Leaving procedure:
     private void handleLeave(StatusMsg.Leave msg) {
         changeState(NodeState.LEAVING);
-        //TODO
+
+        // Per ogni chiave posseduta dal nodo che sta lasciando
+        for (var entry : data.entrySet()) {
+            int key = entry.getKey();
+            DataOperator op = entry.getValue();
+            String value = op.get();
+
+            // Ottieni i nodi che saranno responsabili dopo che questo nodo avrà lasciato
+            List<ActorRef> futureResponsible = memberManager.getFutureResponsibleFor(key, self());
+
+            for (ActorRef node : futureResponsible) {
+                if (!node.equals(getSelf())) {
+                    int version = op.getVersion();
+                    memberManager.send(node, new DataMsg.UpdateMsg(msg.requestId, key, value, version));
+                }
+            }
+        }
+        data.clear();
+        getContext().stop(self());
     }
+    // ///////////////////// End of Leaving procedure
+
+
+    // ///////////////////// Recovery procedure:
+    private void handleRecover(StatusMsg.Recover msg) {
+        changeState(NodeState.RECOVERING);
+        multicaster.send(msg.bootstrappingPear, new NodeMsg.BootstrapRequest(msg.requestId));
+    }
+
+    private void handleBootstrapRequest(ActorRef sender, NodeMsg.BootstrapRequest msg) {
+        // List of active nodes
+        HashMap<Integer, ActorRef> currentMembers = memberManager.getMemberList();
+
+        //Aswer back to the recovery node
+        multicaster.send(sender, new NodeMsg.BootstrapResponse(msg.requestId, currentMembers));
+    }
+
+    private void handleBootstrapResponse(ActorRef _sender, NodeMsg.BootstrapResponse msg) {
+        // Update members
+        this.memberManager.setMemberList(msg.updatedMembers);
+
+        switch (this.state) {
+            case JOINING -> {
+                // TODO
+            }
+            case RECOVERING -> {
+                // TODO sdfds
+                //        //data that crashed node has to manage
+//        HashMap<Integer, String> dataToTransfer = new HashMap<>();
+//        for (var entry : data.entrySet()) {
+//            int key = entry.getKey();
+//
+//            if (memberManager.isResponsible(msg.recoveringNode, key)) {
+//                dataToTransfer.put(key, entry.getValue().get()); // ///////////////////////////////////////////////////// -> ADDED methods in DataOperator.java
+//            }
+//        }
+
+//        this.data.clear();
+//
+//        // Insert new received data
+//        for (var entry : msg.dataToTransfer.entrySet()) {
+//            this.data.put(entry.getKey(), new DataOperator(entry.getValue()));
+//        }
+//
+//        changeState(NodeState.ALIVE);
+
+            }
+            default -> {
+                return;
+            }
+        }
+
+
+    }
+    // ///////////////////// End of Recovery procedure
+
 }
