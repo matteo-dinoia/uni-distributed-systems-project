@@ -5,34 +5,14 @@ import akka.actor.ActorRef;
 import java.io.Serializable;
 import java.util.HashMap;
 
-public class NodeMsg implements Serializable {
-    public final int requestId;
+public class NodeMsg {
+    public record BootstrapRequest(int requestId) implements Serializable {}
 
-    protected NodeMsg(int requestId) {
-        this.requestId = requestId;
-    }
+    public record BootstrapResponse(int requestId, HashMap<Integer, ActorRef> updatedMembers) implements Serializable {}
 
-    public static class BootstrapRequest extends NodeMsg {
+    public record ChangeResponsabilityRequest() implements Serializable {}
 
-        public BootstrapRequest(int requestId) {
-            super(requestId);
-        }
-    }
+    public record ChangeResponsabilityResponse() implements Serializable {}
 
-    public static class BootstrapResponse extends NodeMsg {
-        public final HashMap<Integer, ActorRef> updatedMembers;
-
-        public BootstrapResponse(int requestId, HashMap<Integer, ActorRef> updatedMembers) {
-            super(requestId);
-            this.updatedMembers = updatedMembers;
-        }
-    }
-
-    public static class ChangeResponsabilityRequest extends NodeMsg {
-
-    }
-
-    public static class ChangeResponsabilityResponse extends NodeMsg {
-
-    }
+    public record Timeout(int operationId) implements Serializable {}
 }

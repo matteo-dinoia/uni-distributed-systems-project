@@ -1,5 +1,6 @@
 package node;
 
+// TODO IGNORE
 public enum NodeState {
     TO_START,
     ALIVE,
@@ -9,23 +10,37 @@ public enum NodeState {
     RECOVERING,
     LEFT;
 
-    //TODO switch
+    // TODO use baseState and instance of and maybe put in base state (only if we decide to keep it)
     boolean isValidChange(NodeState nextState) {
-        if (this == TO_START) {
-            return nextState == NodeState.JOINING || nextState == NodeState.ALIVE;
-        } else if (this == ALIVE) {
-            return nextState == NodeState.CRASHED || nextState == NodeState.LEAVING;
-        } else if (this == CRASHED) {
-            return nextState == NodeState.RECOVERING;
-        } else if (this == JOINING) {
-            return nextState == NodeState.ALIVE;
-        } else if (this == LEAVING) {
-            return nextState == NodeState.ALIVE || nextState == NodeState.LEFT;
-        } else if (this == RECOVERING) {
-            return nextState == NodeState.ALIVE;
-        }
+        switch (this) {
+            case TO_START:
+                return nextState == NodeState.JOINING || nextState == NodeState.ALIVE;
 
-        return false;
+            case ALIVE:
+                return nextState == NodeState.CRASHED || nextState == NodeState.LEAVING;
+
+            case CRASHED:
+                return nextState == NodeState.RECOVERING;
+
+            case JOINING:
+                return nextState == NodeState.ALIVE;
+
+            case LEAVING:
+                return nextState == NodeState.ALIVE || nextState == NodeState.LEFT;
+
+            case RECOVERING:
+                return nextState == NodeState.ALIVE;
+
+            default:
+                return false;
+        }
     }
+
+    /* Appunti miei
+Join	    TO_START → JOINING → ALIVE
+Crash	    ALIVE → CRASHED
+Recovery	CRASHED → RECOVERING → ALIVE
+Leaving	    ALIVE → LEAVING → LEFT
+*/
 
 }

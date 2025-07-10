@@ -2,18 +2,10 @@ package messages.client;
 
 import java.io.Serializable;
 
-// TODO move out
-public interface ResponseMsgs extends Serializable {
-    // Answers:
-    public class Completed implements ResponseMsgs {
+public abstract class ResponseMsgs {
+    public record Completed() implements Serializable {}
 
-    }
+    public record Timeouted() implements Serializable {}
 
-    public class Timeouted implements ResponseMsgs {
-
-    }
-
-    public class Invalid implements ResponseMsgs {
-
-    }
+    public record Invalid() implements Serializable {}
 }
