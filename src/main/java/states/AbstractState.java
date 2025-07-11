@@ -3,6 +3,7 @@ package states;
 import akka.actor.ActorRef;
 import messages.client.DataMsg;
 import messages.client.StatusMsg;
+import messages.node_operation.NodeMsg;
 import node.DataStorage;
 import node.MemberManager;
 
@@ -49,13 +50,25 @@ public abstract class AbstractState {
         return switch (message) {
             case StatusMsg.Recover msg -> handleRecover(msg);
             case DataMsg.GetMsg msg -> handleGet(msg);
+            case NodeMsg.BootstrapRequest msg -> handleBootstrapRequest(msg);
+            case NodeMsg.BootstrapResponse msg -> handleBootstrapResponse(msg);
+
             default -> throw new IllegalStateException("Unexpected value: " + message);
         };
     }
 
     // MESSAGE HANDLERS ---------------------------------------------------------------
 
+    // TODO gestire tutti gli stati negli altri stati che non sono congruenti
     protected AbstractState handleRecover(StatusMsg.Recover msg) {
+        return panic();
+    }
+
+    protected AbstractState handleBootstrapRequest(NodeMsg.BootstrapRequest msg) {
+        return panic();
+    }
+
+    protected AbstractState handleBootstrapResponse(NodeMsg.BootstrapResponse msg) {
         return panic();
     }
 

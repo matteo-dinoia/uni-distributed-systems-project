@@ -81,8 +81,6 @@ public class MemberManager {
         multicastToListOfMember(this.obtainResponsibleForData(key), m);
     }
 
-    //Are those the right place? these above methods handle the recovery procedure
-    //placed in Node.java
     public void setMemberList(HashMap<Integer, ActorRef> members) {
         this.oldMemberList = this.memberList;
         this.memberList = members;
@@ -96,6 +94,18 @@ public class MemberManager {
     public void setupTimeoutIn(double ms, int operationId) {
         // TODO
         throw new UnsupportedOperationException();
+    }
+
+    public HashMap<Integer, ActorRef> getMemberList() {
+        return this.memberList;
+    }
+
+    public ActorRef getSelfRef() {
+        return selfRef;
+    }
+
+    public int getSelfId() {
+        return selfId;
     }
 
 }
