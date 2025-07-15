@@ -21,4 +21,15 @@ public class DataStorage {
         }
     }
 
+    public void put(int key, DataElement element) {
+        data.put(key, element);
+    }
+
+    public DataElement get(int key) {
+        return data.get(key);
+    }
+
+    public Set<Integer> getAllKeys() {
+        return data.keySet();
+    }
 }

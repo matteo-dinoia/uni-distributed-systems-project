@@ -2,28 +2,37 @@ package states;
 
 import akka.actor.ActorRef;
 import messages.node_operation.NodeMsg;
-import node.DataStorage;
-import node.MemberManager;
-
-import java.util.HashMap;
+import node.Node;
 
 public class Recovering extends AbstractState {
-    public Recovering(DataStorage storage, MemberManager memberManager) {
-        super(storage, memberManager);
+    private final int reqId;
+
+    public Recovering(Node node, ActorRef bootstrapPear) {
+        super(node);
+        this.reqId = node.getFreshRequestId();
+        sendInitialMsg(bootstrapPear);
     }
 
-    @Override
-    protected AbstractState handleBootstrapRequest(NodeMsg.BootstrapRequest req) {
-        HashMap<Integer, ActorRef> currentMembers = members.getMemberList();
-        members.send(sender(), new NodeMsg.BootstrapResponse(req.requestId(), currentMembers));
-        return this;
+    private void sendInitialMsg(ActorRef bootstrapPear) {
+        members.sendTo(bootstrapPear, new NodeMsg.BootstrapRequest(reqId));
+        members.scheduleSendTimeoutToMyself(reqId);
     }
 
     @Override
     protected AbstractState handleBootstrapResponse(NodeMsg.BootstrapResponse msg) {
+        if (msg.requestId() != reqId)
+            return ignore();
+
         members.setMemberList(msg.updatedMembers());
         storage.discardKeysNotUnderResponsibility(members);
-        return new Normal(storage, members);
+        return new Normal(super.node);
+    }
+
+    @Override
+    protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
+        if (msg.operationId() != reqId)
+            return ignore();
+        return new Crashed(super.node);
     }
 
 }

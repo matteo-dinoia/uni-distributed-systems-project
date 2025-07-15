@@ -1,10 +1,11 @@
 package states;
 
-import node.DataStorage;
-import node.MemberManager;
+import node.Node;
 
 public class Leaving extends AbstractState {
-    public Leaving(DataStorage storage, MemberManager memberManager) {
-        super(storage, memberManager);
+    public Leaving(Node node) {
+        super(node);
     }
+
+    
 }

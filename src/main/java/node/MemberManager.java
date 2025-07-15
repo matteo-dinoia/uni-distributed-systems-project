@@ -1,63 +1,49 @@
 package node;
 
+import akka.actor.ActorContext;
 import akka.actor.ActorRef;
+import messages.node_operation.NodeMsg;
+import scala.concurrent.duration.Duration;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 // questa classe serve per le azioni che hanno a che fare con chi
 // è responsabile per cosa"
 
 public class MemberManager {
-    public static final int N = 4;
-    //public static final int W = 3;
-    //public static final int R = 2;
-
     private static final Random rnd = new Random();
     private final int selfId;
     private final ActorRef selfRef;
+    private final ActorContext context;
     private HashMap<Integer, ActorRef> memberList;
-    private HashMap<Integer, ActorRef> oldMemberList = new HashMap<>();
 
 
-    public MemberManager(int selfId, ActorRef selfRef) {
+    public MemberManager(int selfId, ActorRef selfRef, ActorContext context) {
         this.selfId = selfId;
         this.selfRef = selfRef;
         this.memberList = new HashMap<>();
+        this.context = context;
     }
 
-    private ArrayList<ActorRef> obtainResponsibleForData(int key) {
-        assert memberList.size() >= N;
-
-        ArrayList<ActorRef> result = new ArrayList<>();
-        int remaining = N;
-
-        for (var ref : memberList.entrySet()) {
-            if (remaining > 0 && ref.getKey() >= key) {
-                remaining--;
-                result.add(ref.getValue());
-            }
-        }
-
-        for (var ref : memberList.entrySet()) {
-            if (remaining > 0) {
-                remaining--;
-                result.add(ref.getValue());
-            }
-        }
-
-        return result; /////////////////////////////////////////////////////////////////// <- Better use collections.unmodifiablelist(result) ????
-    }
-
-    private void multicastToListOfMember(List<ActorRef> dests, Serializable m) {
+    private void sendToListOfMember(Stream<ActorRef> dest, Serializable m) {
         // randomly arrange peers
+        var dests = dest.collect(Collectors.toList());
         Collections.shuffle(dests);
 
         for (ActorRef p : dests)
             sendTo(p, m);
     }
 
-    private void sendTo(ActorRef dest, Serializable m) {
+
+    public void sendTo(ActorRef dest, Serializable m) {
         // simulate network delays using sleep
         try {
             Thread.sleep(rnd.nextInt(10));
@@ -69,31 +55,38 @@ public class MemberManager {
         dest.tell(m, this.selfRef);
     }
 
-    public void multicast(Serializable m) {
-        multicastToListOfMember(new ArrayList<>(memberList.values()), m);
+    public void sendTo(Predicate<Integer> filter, Serializable m) {
+        Stream<ActorRef> dests = this.memberList.entrySet().stream().filter(el -> filter.test(el.getKey())).map(Map.Entry::getValue);
+        sendToListOfMember(dests, m);
     }
 
-    public void send(ActorRef destination, Serializable m) {
-        sendTo(destination, m);
+    public void sendToAll(Serializable m) {
+        sendToListOfMember(memberList.values().stream(), m);
     }
 
     public void sendToDataResponsible(int key, Serializable m) {
-        multicastToListOfMember(this.obtainResponsibleForData(key), m);
+        sendTo(actor_id -> {
+            return true;
+        }, m);
     }
 
-    public void setMemberList(HashMap<Integer, ActorRef> members) {
-        this.oldMemberList = this.memberList;
-        this.memberList = members;
+    public void scheduleSendTimeoutToMyself(int operationId) {
+        context.system().scheduler().scheduleOnce(
+                Duration.create(1000, TimeUnit.MILLISECONDS),  // how frequently generate them
+                this.selfRef,                                        // destination actor reference
+                new NodeMsg.Timeout(operationId),                    // the message to send
+                context.system().dispatcher(),                       // system dispatcher
+                this.selfRef);                                       // source of the message (myself)
     }
 
-    public boolean isResponsible(ActorRef node, int key) {
-        List<ActorRef> responsible = obtainResponsibleForData(key);
-        return responsible.contains(node);
-    }
-
-    public void setupTimeoutIn(double ms, int operationId) {
+    public void sendTo2n(Serializable msg) {
         // TODO
         throw new UnsupportedOperationException();
+    }
+
+
+    public void setMemberList(HashMap<Integer, ActorRef> members) {
+        this.memberList = members;
     }
 
     public HashMap<Integer, ActorRef> getMemberList() {
@@ -106,6 +99,36 @@ public class MemberManager {
 
     public int getSelfId() {
         return selfId;
+    }
+
+    public boolean isResponsible(ActorRef requester, Integer key) {
+        // TODO
+        throw new UnsupportedOperationException();
+    }
+
+    public int circularDistance(int from, int to) {
+        int size = memberList.size();
+        return (to - from + size) % size;
+    }
+
+    public boolean isCloserClockwise(int candidate, int current, int self) {
+        int size = memberList.size();
+        return circularDistance(self, candidate) > circularDistance(self, current);
+    }
+
+    public boolean isCloserCounterClockwise(int candidate, int current, int self) {
+        int size = memberList.size();
+        return circularDistance(candidate, self) > circularDistance(current, self);
+    }
+
+    //TODO
+    public int countMembersBetweenIncluded(int closestHigherResponded, int closestLowerResponded) {
+        //count the entries between the two higher and lower responses.
+
+        Integer distance = null;
+
+
+        return distance;
     }
 
 }

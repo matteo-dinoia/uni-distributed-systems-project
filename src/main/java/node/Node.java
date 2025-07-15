@@ -1,40 +1,28 @@
 package node;
 
-import akka.actor.AbstractActor;
-import akka.actor.Props;
-import states.AbstractState;
+import akka.actor.ActorContext;
+import akka.actor.ActorRef;
 
-import java.io.Serializable;
+public class Node {
+    private final MemberManager members;
+    private final DataStorage storage;
+    private int lastRequestId;
 
-public class Node extends AbstractActor {
-    private AbstractState state;
-    private final MemberManager memberManager;
-    private final DataStorage datas;
-
-    public static Props props(int nodeId) {
-        return Props.create(Node.class, () -> new Node(nodeId));
+    public Node(int selfId, ActorRef self, ActorContext context) {
+        this.members = new MemberManager(selfId, self, context);
+        this.storage = new DataStorage();
+        this.lastRequestId = -1;
     }
 
-    public Node(int nodeId) {
-        this.memberManager = new MemberManager(nodeId, self());
-        this.datas = new DataStorage();
-        this.state = null;
+    public MemberManager members() {
+        return this.members;
     }
 
-    // TODO
-    @Override
-    public Receive createReceive() {
-        return receiveBuilder().match(Serializable.class, this::handle)
-                .build();
+    public DataStorage storage() {
+        return this.storage;
     }
 
-    private void handle(Serializable msg) {
-        if (state == null) {
-            // TODO do something
-        }
-
-        var nextState = state.handle(sender(), msg);
-        this.state = nextState;
+    public int getFreshRequestId() {
+        return ++this.lastRequestId;
     }
-
 }
