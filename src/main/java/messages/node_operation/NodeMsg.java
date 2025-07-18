@@ -5,6 +5,7 @@ import node.DataElement;
 
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.List;
 
 public class NodeMsg {
     public record BootstrapRequest(int requestId) implements Serializable {}
@@ -16,11 +17,12 @@ public class NodeMsg {
     public record ResponsabilityResponse(int requestId, int senderId,
                                          HashMap<Integer, DataElement> data) implements Serializable {}
 
-    //    public record ChangeResponsabilityRequest() implements Serializable {}
-//
-//    public record ChangeResponsabilityResponse() implements Serializable {}
-//
     public record Timeout(int operationId) implements Serializable {}
 
-    public record NotifyNewNodeUp(int nodeId) implements Serializable {}
+    // TODO change for every key the record below
+    public record PassResponsabilityRequest(int key, DataElement data, int requestId) implements Serializable {}
+
+    public record PassResponsabilityResponse(List<Integer> keys, int requestId) implements Serializable {}
+
+    public record RollbackPassResponsability(int requestId) implements Serializable {}
 }

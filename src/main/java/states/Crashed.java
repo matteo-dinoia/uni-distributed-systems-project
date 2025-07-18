@@ -2,12 +2,19 @@ package states;
 
 import messages.client.StatusMsg;
 import node.Node;
+import node.NodeState;
 
 import java.io.Serializable;
 
 public class Crashed extends AbstractState {
+
     public Crashed(Node node) {
         super(node);
+    }
+
+    @Override
+    public NodeState getNodeRepresentation() {
+        return NodeState.CRASHED;
     }
 
     @Override

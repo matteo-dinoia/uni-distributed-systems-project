@@ -1,5 +1,7 @@
 package utils;
 
+import java.util.Objects;
+
 public class Pair<L, R> {
     private L left;
     private R right;
@@ -34,14 +36,14 @@ public class Pair<L, R> {
         return "(" + left + ", " + right + ")";
     }
 
-//    @Override
+    //    @Override
 //    public boolean equals(Object o) {
 //        if (!(o instanceof Pair<?, ?> other)) return false;
 //        return Objects.equals(left, other.left) && Objects.equals(right, other.right);
 //    }
 //
-//    @Override
-//    public int hashCode() {
-//        return Objects.hash(left, right);
-//    }
+    @Override
+    public int hashCode() {
+        return Objects.hash(left, right);
+    }
 }

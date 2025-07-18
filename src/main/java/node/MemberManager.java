@@ -6,10 +6,7 @@ import messages.node_operation.NodeMsg;
 import scala.concurrent.duration.Duration;
 
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -120,15 +117,16 @@ public class MemberManager {
         int size = memberList.size();
         return circularDistance(candidate, self) > circularDistance(current, self);
     }
-
-    //TODO
+    
     public int countMembersBetweenIncluded(int closestHigherResponded, int closestLowerResponded) {
-        //count the entries between the two higher and lower responses.
-
-        Integer distance = null;
-
-
-        return distance;
+        //TODO count the entries between the two higher and lower responses.
+        throw new UnsupportedOperationException("Not implemented yet");
     }
+
+    // TODO NB, it is required to use immutable when we use lists..? maybe they fuck our ass for shitty details like this.
+    public List<ActorRef> findNewResponsiblesFor(int key) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
 
 }

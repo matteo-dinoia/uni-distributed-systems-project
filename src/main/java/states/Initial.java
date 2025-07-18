@@ -2,12 +2,18 @@ package states;
 
 import messages.client.StatusMsg;
 import node.Node;
+import node.NodeState;
 
 import java.io.Serializable;
 
 public class Initial extends AbstractState {
     public Initial(Node node) {
         super(node);
+    }
+
+    @Override
+    public NodeState getNodeRepresentation() {
+        return NodeState.TO_START;
     }
 
     @Override

@@ -12,8 +12,7 @@ public class Main {
     public static void waitUntilEnter() {
         try {
             System.out.println(">>> Press ENTER to exit <<<");
-            //noinspection ResultOfMethodCallIgnored
-            System.in.read();
+            var ignored = System.in.read();
 
         } catch (IOException ignored) {
         }

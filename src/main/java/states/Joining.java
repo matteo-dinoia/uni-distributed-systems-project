@@ -2,8 +2,10 @@ package states;
 
 import akka.actor.ActorRef;
 import messages.node_operation.NodeMsg;
+import messages.node_operation.NotifyMsg;
 import node.DataElement;
 import node.Node;
+import node.NodeState;
 import utils.Config;
 import utils.Pair;
 
@@ -28,6 +30,11 @@ public class Joining extends AbstractState {
         sendInitialMsg();
     }
 
+    @Override
+    public NodeState getNodeRepresentation() {
+        return NodeState.JOINING;
+    }
+
     private void sendInitialMsg() {
         members.sendTo2n(new NodeMsg.ResponsabilityRequest(reqId, members.getSelfRef()));
         members.scheduleSendTimeoutToMyself(reqId);
@@ -46,7 +53,7 @@ public class Joining extends AbstractState {
             for (var entry : receivedData.entrySet())
                 storage.put(entry.getKey(), entry.getValue().getLeft());
 
-            members.sendToAll(new NodeMsg.NotifyNewNodeUp(members.getSelfId()));
+            members.sendToAll(new NotifyMsg.NodeJoined(members.getSelfId(), members.getSelfRef()));
             return new Normal(super.node);
         }
 
@@ -99,6 +106,4 @@ public class Joining extends AbstractState {
         }
         return true;
     }
-
-
 }

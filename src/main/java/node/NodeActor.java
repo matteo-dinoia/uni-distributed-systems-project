@@ -20,7 +20,6 @@ public class NodeActor extends AbstractActor {
         this.state = new Initial(node);
     }
 
-    // TODO
     @Override
     public Receive createReceive() {
         return receiveBuilder().match(Serializable.class, this::handle)
@@ -28,12 +27,17 @@ public class NodeActor extends AbstractActor {
     }
 
     private void handle(Serializable msg) {
-        if (state == null) {
-            // TODO do something
+        var nextState = state.handle(sender(), msg);
+
+        if (nextState == null) {
+            // TODO remove panics
+            System.out.println("PANIC on node " + node.members().getSelfId());
+        } else {
+            if (!this.state.getNodeRepresentation().isValidChange(nextState.getNodeRepresentation()))
+                System.out.println("INVALID STATE TRANSACTION in" + node.members().getSelfId());
+            this.state = nextState;
         }
 
-        var nextState = state.handle(sender(), msg);
-        this.state = nextState;
     }
 
 }

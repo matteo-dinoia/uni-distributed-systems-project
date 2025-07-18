@@ -3,6 +3,7 @@ package states;
 import akka.actor.ActorRef;
 import messages.node_operation.NodeMsg;
 import node.Node;
+import node.NodeState;
 
 public class Recovering extends AbstractState {
     private final int reqId;
@@ -11,6 +12,11 @@ public class Recovering extends AbstractState {
         super(node);
         this.reqId = node.getFreshRequestId();
         sendInitialMsg(bootstrapPear);
+    }
+
+    @Override
+    public NodeState getNodeRepresentation() {
+        return NodeState.RECOVERING;
     }
 
     private void sendInitialMsg(ActorRef bootstrapPear) {
