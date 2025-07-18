@@ -14,5 +14,6 @@ public abstract class StatusMsg {
 
     public record Recover(int requestId, ActorRef bootstrappingPear) implements Serializable {}
 
+    // Skip from initial state to alive state (ignoring joining as all are joining at same time)
     public record InitialMembers(int requestId, HashMap<Integer, ActorRef> initial) implements Serializable {}
 }
