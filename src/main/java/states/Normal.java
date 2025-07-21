@@ -89,7 +89,6 @@ public class Normal extends AbstractState {
         return keepSameState();
     }
 
-
     public AbstractState handleSubstates(Serializable msg) {
         AbstractState sub = substates.get(sender());
         if (sub == null)
@@ -105,7 +104,7 @@ public class Normal extends AbstractState {
         return keepSameState();
     }
 
-
+    @Override
     protected AbstractState handleLockRequest(NodeMsg.LockRequest msg) {
         DataElement elem = storage.get(msg.key());
         if (elem == null)
@@ -120,6 +119,7 @@ public class Normal extends AbstractState {
         return keepSameState();
     }
 
+    @Override
     protected AbstractState handleLockRelease(NodeMsg.LockRelease msg) {
         DataElement elem = storage.get(msg.key());
         if (elem != null) elem.setLockedForWrite(false);
