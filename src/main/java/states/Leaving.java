@@ -28,8 +28,7 @@ public class Leaving extends AbstractState {
     }
 
     private void sendDataLeaving() {
-        // TODO only send a single message for each destination
-        // TODO require circular struct or something similar
+        // TODO MEDIUM only send a single message for each destination (require circular struct or something similar)
         for (Integer key : storage.getAllKeys()) {
             DataElement value = storage.get(key);
             List<ActorRef> newResponsibles = members.findNewResponsiblesFor(key);

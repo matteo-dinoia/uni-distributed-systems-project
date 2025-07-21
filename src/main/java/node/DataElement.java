@@ -7,17 +7,20 @@ public class DataElement implements Serializable {
     private String value;
     private int version;
     private boolean versionReadLocked;
+    private boolean lockedForWrite;
 
     public DataElement() {
         this.value = null;
         this.version = -1;
         this.versionReadLocked = false;
+        this.lockedForWrite = false;
     }
 
     public DataElement(String value, int version) {
         this.value = value;
         this.version = version;
         this.versionReadLocked = false;
+        this.lockedForWrite = false;
     }
 
     public String getValue() {
@@ -30,6 +33,14 @@ public class DataElement implements Serializable {
 
     public boolean isVersionReadLocked() {
         return versionReadLocked;
+    }
+
+    public boolean isLockedForWrite() {
+        return lockedForWrite;
+    }
+
+    public void setLockedForWrite(boolean lock) {
+        this.lockedForWrite = lock;
     }
 
     public void setValue(String value, int version) {

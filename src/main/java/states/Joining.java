@@ -35,6 +35,7 @@ public class Joining extends AbstractState {
         return NodeState.JOINING;
     }
 
+    // TODO HARD It is probably wrong if too little elements are in there
     private void sendInitialMsg() {
         members.sendTo2n(new NodeMsg.ResponsabilityRequest(reqId, members.getSelfRef()));
         members.scheduleSendTimeoutToMyself(reqId);
@@ -67,7 +68,7 @@ public class Joining extends AbstractState {
         return new Initial(super.node);
     }
 
-    // TODO check and implement correctly the methods
+    // TODO HARD It is probably wrong if too little elements are in there
     private boolean addResponded(ActorRef sender, int senderId) {
         int selfId = members.getSelfId();
         responded.add(sender());

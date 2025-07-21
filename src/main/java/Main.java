@@ -9,6 +9,8 @@ import java.util.HashMap;
 
 
 public class Main {
+    // TODO CHECK, it is required to use immutable when we use messages?
+
     public static void waitUntilEnter() {
         try {
             System.out.println(">>> Press ENTER to exit <<<");

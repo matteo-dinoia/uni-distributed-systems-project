@@ -14,4 +14,6 @@ public abstract class ResponseMsgs {
     public record ReadResultFailed(int key) implements Serializable {}
 
     public record ReadTimeout(int key) implements Serializable {}
+
+    public record WriteResult(int key, String newValue, int newVersion) implements Serializable {}
 }
