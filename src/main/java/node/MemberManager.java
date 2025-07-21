@@ -30,7 +30,7 @@ public class MemberManager {
         this.context = context;
     }
 
-    private void sendToListOfMember(Stream<ActorRef> dest, Serializable m) {
+    public void sendTo(Stream<ActorRef> dest, Serializable m) {
         // randomly arrange peers
         var dests = dest.collect(Collectors.toList());
         Collections.shuffle(dests);
@@ -54,17 +54,11 @@ public class MemberManager {
 
     public void sendTo(Predicate<Integer> filter, Serializable m) {
         Stream<ActorRef> dests = this.memberList.entrySet().stream().filter(el -> filter.test(el.getKey())).map(Map.Entry::getValue);
-        sendToListOfMember(dests, m);
+        sendTo(dests, m);
     }
 
     public void sendToAll(Serializable m) {
-        sendToListOfMember(memberList.values().stream(), m);
-    }
-
-    public void sendToDataResponsible(int key, Serializable m) {
-        sendTo(actor_id -> {
-            return true;
-        }, m);
+        sendTo(memberList.values().stream(), m);
     }
 
     public void scheduleSendTimeoutToMyself(int operationId) {
@@ -76,8 +70,13 @@ public class MemberManager {
                 this.selfRef);                                       // source of the message (myself)
     }
 
+    public void sendToDataResponsible(int key, Serializable m) {
+        // TODO HARD implement
+        throw new UnsupportedOperationException();
+    }
+
     public void sendTo2n(Serializable msg) {
-        // TODO
+        // TODO HARD implement
         throw new UnsupportedOperationException();
     }
 
@@ -99,7 +98,7 @@ public class MemberManager {
     }
 
     public boolean isResponsible(ActorRef requester, Integer key) {
-        // TODO
+        // TODO HARD
         throw new UnsupportedOperationException();
     }
 
@@ -117,14 +116,15 @@ public class MemberManager {
         int size = memberList.size();
         return circularDistance(candidate, self) > circularDistance(current, self);
     }
-    
+
     public int countMembersBetweenIncluded(int closestHigherResponded, int closestLowerResponded) {
-        //TODO count the entries between the two higher and lower responses.
+        // TODO HARD count the entries between the two higher and lower responses.
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    // TODO NB, it is required to use immutable when we use lists..? maybe they fuck our ass for shitty details like this.
+
     public List<ActorRef> findNewResponsiblesFor(int key) {
+        // TODO HARD
         throw new UnsupportedOperationException("Not implemented yet");
     }
 

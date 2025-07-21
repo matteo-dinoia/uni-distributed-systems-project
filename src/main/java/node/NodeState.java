@@ -1,6 +1,5 @@
 package node;
 
-// TODO IGNORE
 public enum NodeState {
     TO_START,
     ALIVE,
@@ -11,7 +10,6 @@ public enum NodeState {
     LEFT,
     OTHER;
 
-    // TODO use baseState and instance of and maybe put in base state (only if we decide to keep it)
     public boolean isValidChange(NodeState nextState) {
         return switch (this) {
             case TO_START -> nextState == NodeState.JOINING || nextState == NodeState.ALIVE;

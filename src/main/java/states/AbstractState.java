@@ -79,22 +79,27 @@ public abstract class AbstractState {
             case StatusMsg.Recover msg -> handleRecover(msg);
             // ───────────── Timeout ─────────────
             case NodeMsg.Timeout msg -> handleTimeout(msg);
-            // ───────────── Normal ─────────────
+            // ───────────── Notifications ─────────────
             case NotifyMsg.NodeJoined msg -> handleNodeJoined(msg);
             case NotifyMsg.NodeLeft msg -> handleNodeLeft(msg);
+            // ───────────── Crash / Leave ─────────────
             case StatusMsg.Crash msg -> handleCrash(msg);
             case StatusMsg.Leave msg -> handleLeave(msg);
-            // TODO handle all the msgs (check for more)
             // ───────────── Read (Get) ─────────────
-            case DataMsg.Get msg -> handleGet(msg); //TODO inside normal hashmap of operations.
+            case DataMsg.Get msg -> handleGet(msg);
             case NodeDataMsg.ReadRequest msg -> handleReadRequest(msg);
             case NodeDataMsg.ReadReply msg -> handleReadReply(msg);
             // ───────────── Write (Update) ─────────────
-            // TODO: add handling for DataMsg.UpdateMsg and relevant internal messages (WriteRequest, WriteAck)
             case DataMsg.Update msg -> handleUpdate(msg);
-            // case DataMsg.UpdateMsg msg -> handleUpdate(msg);
-            // case NodeMsg.WriteAck msg -> handleWriteAck(msg);
-            default -> throw new IllegalStateException("Unexpected value: " + message);
+            case NodeDataMsg.WriteRequest msg -> handleWriteRequest(msg);
+            case NodeDataMsg.WriteAck msg -> handleWriteAck(msg);
+            // ───────────── Locking ─────────────
+            case NodeMsg.LockRequest msg -> handleLockRequest(msg);
+            case NodeMsg.LockGranted msg -> handleLockGranted(msg);
+            case NodeMsg.LockDenied msg -> handleLockDenied(msg);
+            case NodeMsg.LockRelease msg -> handleLockRelease(msg);
+
+            default -> throw new IllegalStateException("Unexpected message: " + message);
         };
     }
 
@@ -192,6 +197,31 @@ public abstract class AbstractState {
     protected AbstractState handleJoin(StatusMsg.Join msg) {
         return panic();
     }
+
+    protected AbstractState handleLockRequest(NodeMsg.LockRequest msg) {
+        return panic();  // or default ignore/panic
+    }
+
+    protected AbstractState handleLockGranted(NodeMsg.LockGranted msg) {
+        return panic();
+    }
+
+    protected AbstractState handleLockDenied(NodeMsg.LockDenied msg) {
+        return panic();
+    }
+
+    protected AbstractState handleLockRelease(NodeMsg.LockRelease msg) {
+        return panic();
+    }
+
+    protected AbstractState handleWriteRequest(NodeDataMsg.WriteRequest msg) {
+        return panic();
+    }
+
+    protected AbstractState handleWriteAck(NodeDataMsg.WriteAck msg) {
+        return panic();
+    }
+
 
 }
 

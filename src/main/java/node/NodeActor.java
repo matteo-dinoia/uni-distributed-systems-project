@@ -30,7 +30,7 @@ public class NodeActor extends AbstractActor {
         var nextState = state.handle(sender(), msg);
 
         if (nextState == null) {
-            // TODO remove panics
+            // TODO MAYBE remove panics
             System.out.println("PANIC on node " + node.members().getSelfId());
         } else {
             if (!this.state.getNodeRepresentation().isValidChange(nextState.getNodeRepresentation()))

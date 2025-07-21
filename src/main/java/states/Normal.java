@@ -3,7 +3,9 @@ package states;
 import akka.actor.ActorRef;
 import messages.client.DataMsg;
 import messages.client.StatusMsg;
+import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
+import node.DataElement;
 import node.Node;
 import node.NodeState;
 import states.sub.Get;
@@ -57,13 +59,13 @@ public class Normal extends AbstractState {
 
     @Override
     protected AbstractState handleNodeLeft(NotifyMsg.NodeLeft msg) {
-        // TODO
+        // TODO EASY
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override
     protected AbstractState handleNodeJoined(NotifyMsg.NodeJoined msg) {
-        // TODO
+        // TODO EASY
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
@@ -74,7 +76,7 @@ public class Normal extends AbstractState {
         if (sub != null)
             return panic();
 
-        substates.put(sender(), new Update(super.node, msg));
+        substates.put(sender(), new Update(super.node, sender(), msg));
         return keepSameState();
     }
 
@@ -102,4 +104,26 @@ public class Normal extends AbstractState {
             substates.remove(sender());
         return keepSameState();
     }
+
+
+    protected AbstractState handleLockRequest(NodeMsg.LockRequest msg) {
+        DataElement elem = storage.get(msg.key());
+        if (elem == null)
+            return panic();
+
+        if (elem.isLockedForWrite()) {
+            members.sendTo(sender(), new NodeMsg.LockDenied(msg.requestId()));
+        } else {
+            elem.setLockedForWrite(true);
+            members.sendTo(sender(), new NodeMsg.LockGranted(msg.requestId(), elem));
+        }
+        return keepSameState();
+    }
+
+    protected AbstractState handleLockRelease(NodeMsg.LockRelease msg) {
+        DataElement elem = storage.get(msg.key());
+        if (elem != null) elem.setLockedForWrite(false);
+        return keepSameState();
+    }
+
 }
