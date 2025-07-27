@@ -35,7 +35,6 @@ public class Joining extends AbstractState {
         return NodeState.JOINING;
     }
 
-    // TODO HARD It is probably wrong if too little elements are in there
     private void sendInitialMsg() {
         members.sendTo2n(new NodeMsg.ResponsabilityRequest(reqId, members.getSelfRef()));
         members.scheduleSendTimeoutToMyself(reqId);
@@ -65,10 +64,24 @@ public class Joining extends AbstractState {
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
         if (msg.operationId() != reqId)
             return ignore();
+        // TODO YOU using members.sendToMain the status of operation
+        // eg. if could or not join
+        // TODO YOU start creating the tester
+        // the tester take a list of nodeID and create them, possibly with some initial dataelem
+        // is practically an actor
+        // Also send a list of list (where it represent group of messages that are at same time
+        // internally do:
+        // * send first group (and set timeout as normal (use different length specied in utils/Config
+        // * wait for response (that you need to add per to-do over there)
+        // * if timeout timeout
+        // * if good pass to second and so on
+        // Still need an atomic in the tester and shit like that. We can call it polling so that is seem fancy
+        // but it is just busy waiting.
+
         return new Initial(super.node);
     }
 
-    // TODO HARD It is probably wrong if too little elements are in there
+    // TODO CHECK order of element that is counted correctly
     private boolean addResponded(ActorRef sender, int senderId) {
         int selfId = members.getSelfId();
         responded.add(sender());

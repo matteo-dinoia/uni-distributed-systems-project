@@ -8,10 +8,10 @@ import node.NodeState;
 public class Recovering extends AbstractState {
     private final int reqId;
 
-    public Recovering(Node node, ActorRef bootstrapPear) {
+    public Recovering(Node node, ActorRef bootstrapPeer) {
         super(node);
         this.reqId = node.getFreshRequestId();
-        sendInitialMsg(bootstrapPear);
+        sendInitialMsg(bootstrapPeer);
     }
 
     @Override
@@ -19,8 +19,8 @@ public class Recovering extends AbstractState {
         return NodeState.RECOVERING;
     }
 
-    private void sendInitialMsg(ActorRef bootstrapPear) {
-        members.sendTo(bootstrapPear, new NodeMsg.BootstrapRequest(reqId));
+    private void sendInitialMsg(ActorRef bootstrapPeer) {
+        members.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
         members.scheduleSendTimeoutToMyself(reqId);
     }
 
