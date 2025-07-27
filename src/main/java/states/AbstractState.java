@@ -88,17 +88,18 @@ public abstract class AbstractState {
             // ───────────── Read (Get) ─────────────
             case DataMsg.Get msg -> handleGet(msg);
             case NodeDataMsg.ReadRequest msg -> handleReadRequest(msg);
-            case NodeDataMsg.ReadReply msg -> handleReadReply(msg);
+            case NodeDataMsg.ReadResponse msg -> handleReadResponse(msg);
+            case NodeDataMsg.ReadImpossibleForLock msg -> handleReadImpossibleForLock(msg);
             // ───────────── Write (Update) ─────────────
             case DataMsg.Update msg -> handleUpdate(msg);
             case NodeDataMsg.WriteRequest msg -> handleWriteRequest(msg);
             case NodeDataMsg.WriteAck msg -> handleWriteAck(msg);
             // ───────────── Locking ─────────────
-            case NodeMsg.LockRequest msg -> handleLockRequest(msg);
-            case NodeMsg.LockGranted msg -> handleLockGranted(msg);
-            case NodeMsg.LockDenied msg -> handleLockDenied(msg);
-            case NodeMsg.LockRelease msg -> handleLockRelease(msg);
-
+            case NodeDataMsg.WriteLockRequest msg -> handleWriteLockRequest(msg);
+            case NodeDataMsg.WriteLockGranted msg -> handleWriteLockGranted(msg);
+            case NodeDataMsg.WriteLockDenied msg -> handleWriteLockDenied(msg);
+            case NodeDataMsg.WriteLockRelease msg -> handleWriteLockRelease(msg);
+            case NodeDataMsg.ReadLockAcked msg -> handleReadLockAcked(msg);
             default -> throw new IllegalStateException("Unexpected message: " + message);
         };
     }
@@ -107,8 +108,7 @@ public abstract class AbstractState {
     // MESSAGE HANDLERS ---------------------------------------------------------------
 
     // Custom handler
-
-    protected AbstractState handleAskForMyResponsibility(NodeMsg.ResponsabilityRequest msg) {
+    protected AbstractState handleResponsabilityRequest(NodeMsg.ResponsabilityRequest msg) {
         HashMap<Integer, DataElement> toSend = new HashMap<>();
         for (Integer key : storage.getAllKeys()) {
             if (members.isResponsible(msg.requester(), key)) {
@@ -128,7 +128,7 @@ public abstract class AbstractState {
 
     protected AbstractState handleReadRequest(NodeDataMsg.ReadRequest msg) {
         DataElement element = storage.get(msg.key());
-        members.sendTo(sender(), new NodeDataMsg.ReadReply(msg.requestId(), element));
+        members.sendTo(sender(), new NodeDataMsg.ReadResponse(msg.requestId(), element));
         return keepSameState();
     }
 
@@ -150,10 +150,6 @@ public abstract class AbstractState {
         return log_unhandled();
     }
 
-    protected AbstractState handleResponsabilityRequest(NodeMsg.ResponsabilityRequest msg) {
-        return panic();
-    }
-
     protected AbstractState handleResponsabilityResponse(NodeMsg.ResponsabilityResponse msg) {
         return panic();
     }
@@ -166,7 +162,7 @@ public abstract class AbstractState {
         return panic();
     }
 
-    protected AbstractState handleReadReply(NodeDataMsg.ReadReply msg) {
+    protected AbstractState handleReadResponse(NodeDataMsg.ReadResponse msg) {
         return panic();
     }
 
@@ -198,19 +194,19 @@ public abstract class AbstractState {
         return panic();
     }
 
-    protected AbstractState handleLockRequest(NodeMsg.LockRequest msg) {
-        return panic();  // or default ignore/panic
-    }
-
-    protected AbstractState handleLockGranted(NodeMsg.LockGranted msg) {
+    protected AbstractState handleWriteLockRequest(NodeDataMsg.WriteLockRequest msg) {
         return panic();
     }
 
-    protected AbstractState handleLockDenied(NodeMsg.LockDenied msg) {
+    protected AbstractState handleWriteLockGranted(NodeDataMsg.WriteLockGranted msg) {
         return panic();
     }
 
-    protected AbstractState handleLockRelease(NodeMsg.LockRelease msg) {
+    protected AbstractState handleWriteLockDenied(NodeDataMsg.WriteLockDenied msg) {
+        return panic();
+    }
+
+    protected AbstractState handleWriteLockRelease(NodeDataMsg.WriteLockRelease msg) {
         return panic();
     }
 
@@ -222,6 +218,13 @@ public abstract class AbstractState {
         return panic();
     }
 
+    protected AbstractState handleReadImpossibleForLock(NodeDataMsg.ReadImpossibleForLock msg) {
+        return panic();
+    }
+
+    protected AbstractState handleReadLockAcked(NodeDataMsg.ReadLockAcked msg) {
+        return panic();
+    }
 
 }
 

@@ -3,7 +3,7 @@ package states;
 import akka.actor.ActorRef;
 import messages.client.DataMsg;
 import messages.client.StatusMsg;
-import messages.node_operation.NodeMsg;
+import messages.node_operation.NodeDataMsg;
 import messages.node_operation.NotifyMsg;
 import node.DataElement;
 import node.Node;
@@ -25,7 +25,7 @@ public class Normal extends AbstractState {
 
     @Override
     public NodeState getNodeRepresentation() {
-        return NodeState.ALIVE;
+        return NodeState.NORMAL;
     }
 
     @Override
@@ -99,31 +99,64 @@ public class Normal extends AbstractState {
         if (nextSubstate == null)
             return panic();
 
-        if (nextSubstate.getNodeRepresentation() == NodeState.ALIVE)
+        if (nextSubstate.getNodeRepresentation() == NodeState.NORMAL)
             substates.remove(sender());
         return keepSameState();
     }
 
     @Override
-    protected AbstractState handleLockRequest(NodeMsg.LockRequest msg) {
+    protected AbstractState handleWriteLockRequest(NodeDataMsg.WriteLockRequest msg) {
         DataElement elem = storage.get(msg.key());
-        if (elem == null)
-            return panic();
+        if (elem == null) {
+            // TODO MAYBE tecnically is a memory leak
+            elem = new DataElement();
+            storage.put(msg.key(), elem);
+        }
+
 
         if (elem.isLockedForWrite()) {
-            members.sendTo(sender(), new NodeMsg.LockDenied(msg.requestId()));
+            members.sendTo(sender(), new NodeDataMsg.WriteLockDenied(msg.requestId()));
         } else {
             elem.setLockedForWrite(true);
-            members.sendTo(sender(), new NodeMsg.LockGranted(msg.requestId(), elem));
+            members.sendTo(sender(), new NodeDataMsg.WriteLockGranted(msg.requestId(), elem.getVersion()));
         }
         return keepSameState();
     }
 
     @Override
-    protected AbstractState handleLockRelease(NodeMsg.LockRelease msg) {
+    protected AbstractState handleWriteLockRelease(NodeDataMsg.WriteLockRelease msg) {
         DataElement elem = storage.get(msg.key());
-        if (elem != null) elem.setLockedForWrite(false);
+        if (elem == null)
+            return panic();
+
+        elem.setLockedForWrite(false);
         return keepSameState();
     }
+
+    @Override
+    protected AbstractState handleWriteRequest(NodeDataMsg.WriteRequest msg) {
+        DataElement elem = storage.get(msg.key());
+        if (elem == null)
+            return panic();
+
+        elem.updateValue(msg.value(), msg.version());
+        elem.setLockedForWrite(false);
+
+        members.sendTo(sender(), new NodeDataMsg.WriteAck(msg.requestId()));
+        return keepSameState();
+    }
+
+    @Override
+    protected AbstractState handleReadRequest(NodeDataMsg.ReadRequest msg) {
+        DataElement elem = storage.get(msg.key());
+
+        if (elem.isReadLocked()) {
+            members.sendTo(sender(), new NodeDataMsg.ReadImpossibleForLock(msg.requestId()));
+        } else {
+            members.sendTo(sender(), new NodeDataMsg.ReadResponse(msg.requestId(), elem));
+        }
+        return keepSameState();
+    }
+
 
 }

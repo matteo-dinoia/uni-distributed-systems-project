@@ -9,7 +9,9 @@ import java.util.HashMap;
 
 
 public class Main {
-    // TODO CHECK, it is required to use immutable when we use messages?
+    //TODO check akka.testing: https://doc.akka.io/libraries/akka-core/current/typed/testing.html
+
+    //TODO check if immutable, and that stuff is correct in our architecture according to akka principles.
 
     public static void waitUntilEnter() {
         try {
