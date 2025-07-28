@@ -13,8 +13,8 @@ repositories {
 
 def versions = [
         ScalaBinary   : "2.13",
-        AkkaVersion   : "2.9.0",
-        LogBackVersion: "1.2.3",
+        AkkaVersion   : "2.10.8",
+        LogBackVersion: "1.5.13",
         JunitVersion  : "4.13.1"
 ]
 
@@ -22,7 +22,7 @@ dependencies {
     implementation "com.typesafe.akka:akka-bom_${versions.ScalaBinary}:${versions.AkkaVersion}"
     implementation "com.typesafe.akka:akka-actor-typed_${versions.ScalaBinary}:${versions.AkkaVersion}"
 
-    testImplementation "com.typesafe.akka:akka-actor-testkit-typed_${versions.ScalaBinary}"
+    implementation "com.typesafe.akka:akka-actor-testkit-typed_${versions.ScalaBinary}:${versions.AkkaVersion}"
     testImplementation "junit:junit:${versions.JunitVersion}"
     implementation "ch.qos.logback:logback-classic:${versions.LogBackVersion}"
 }
@@ -31,7 +31,7 @@ java {
     sourceCompatibility = JavaVersion.VERSION_21
 }
 
-application{
+application {
     mainClass = "Main"
 }
 

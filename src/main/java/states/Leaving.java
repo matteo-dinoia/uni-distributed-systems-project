@@ -1,6 +1,7 @@
 package states;
 
-import akka.actor.ActorRef;
+import akka.actor.typed.ActorRef;
+import messages.Message;
 import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
 import node.DataElement;
@@ -31,9 +32,9 @@ public class Leaving extends AbstractState {
         // TODO MEDIUM only send a single message for each destination (require circular struct or something similar)
         for (Integer key : storage.getAllKeys()) {
             DataElement value = storage.get(key);
-            List<ActorRef> newResponsibles = members.findNewResponsiblesFor(key);
+            List<ActorRef<Message>> newResponsibles = members.findNewResponsiblesFor(key);
 
-            for (ActorRef target : newResponsibles) {
+            for (ActorRef<Message> target : newResponsibles) {
                 members.sendTo(target, new NodeMsg.PassResponsabilityRequest(key, value, reqId));
             }
 

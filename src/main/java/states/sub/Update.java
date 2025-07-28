@@ -1,6 +1,7 @@
 package states.sub;
 
-import akka.actor.ActorRef;
+import akka.actor.typed.ActorRef;
+import messages.Message;
 import messages.client.DataMsg;
 import messages.client.ResponseMsgs;
 import messages.node_operation.NodeDataMsg;
@@ -39,19 +40,19 @@ public class Update extends AbstractState {
     private final int requestId;
     private final int key;
     private final String newValue;
-    private final ActorRef client;
+    private final ActorRef<Message> client;
     private Phase phase;
     // Phase 1: track which replicas granted or denied write locks
-    private final HashSet<ActorRef> writeLockGranted = new HashSet<>();
-    private final HashSet<ActorRef> writeLockDenied = new HashSet<>();
+    private final HashSet<ActorRef<Message>> writeLockGranted = new HashSet<>();
+    private final HashSet<ActorRef<Message>> writeLockDenied = new HashSet<>();
     private Integer lastVersionSeen = null;
     // Phase 2: track read locks acknowledgments
     private Integer newVer = null;
-    private final HashSet<ActorRef> readLockAcked = new HashSet<>();
+    private final HashSet<ActorRef<Message>> readLockAcked = new HashSet<>();
     // Phase 3: track read locks acknowledgments
-    private final HashSet<ActorRef> writeAcked = new HashSet<>();
+    private final HashSet<ActorRef<Message>> writeAcked = new HashSet<>();
 
-    public Update(Node node, ActorRef client, DataMsg.Update msg) {
+    public Update(Node node, ActorRef<Message> client, DataMsg.Update msg) {
         super(node);
         this.requestId = node.getFreshRequestId();
         this.client = client;
@@ -105,7 +106,7 @@ public class Update extends AbstractState {
 
             // send the write request only to replicas that granted the lock
             var writeReq = new NodeDataMsg.ReadLockRequest(requestId, key);
-            for (ActorRef ref : this.writeLockGranted)
+            for (ActorRef<Message> ref : this.writeLockGranted)
                 members.sendTo(ref, writeReq);
         }
 

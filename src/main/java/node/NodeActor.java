@@ -1,33 +1,36 @@
 package node;
 
-import akka.actor.AbstractActor;
-import akka.actor.Props;
+import akka.actor.typed.Behavior;
+import akka.actor.typed.javadsl.AbstractBehavior;
+import akka.actor.typed.javadsl.ActorContext;
+import akka.actor.typed.javadsl.Behaviors;
+import akka.actor.typed.javadsl.Receive;
+import messages.Message;
 import states.AbstractState;
 import states.Initial;
 
-import java.io.Serializable;
-
-public class NodeActor extends AbstractActor {
+public class NodeActor extends AbstractBehavior<Message> {
     private AbstractState state;
     private final Node node;
 
-    public static Props props(int nodeId) {
-        return Props.create(NodeActor.class, () -> new NodeActor(nodeId));
-    }
-
-    public NodeActor(int nodeId) {
-        this.node = new Node(nodeId, self(), context());
+    public NodeActor(ActorContext<Message> context) {
+        super(context);
+        this.node = null;
+        //this.node = new Node(nodeId, self(), context());
         this.state = new Initial(node);
     }
 
-    @Override
-    public Receive createReceive() {
-        return receiveBuilder().match(Serializable.class, this::handle)
-                .build();
+    public static Behavior<Message> create() {
+        return Behaviors.setup(NodeActor::new);
     }
 
-    private void handle(Serializable msg) {
-        var nextState = state.handle(sender(), msg);
+    @Override
+    public Receive<Message> createReceive() {
+        return newReceiveBuilder().onAnyMessage(this::handle).build();
+    }
+
+    private Behavior<Message> handle(Message msg) {
+        var nextState = state.handle(msg.sender(), msg.content());
 
         if (nextState == null) {
             // TODO MAYBE remove panics
@@ -38,6 +41,8 @@ public class NodeActor extends AbstractActor {
             this.state = nextState;
         }
 
+        // TODO pls no
+        return create();
     }
 
 }

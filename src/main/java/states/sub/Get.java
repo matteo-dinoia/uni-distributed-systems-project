@@ -1,6 +1,7 @@
 package states.sub;
 
-import akka.actor.ActorRef;
+import akka.actor.typed.ActorRef;
+import messages.Message;
 import messages.client.DataMsg;
 import messages.client.ResponseMsgs;
 import messages.node_operation.NodeDataMsg;
@@ -18,13 +19,13 @@ public class Get extends AbstractState {
     private final int requestId;
     private final int key;
 
-    private final ActorRef client;
-    private final HashSet<ActorRef> respondedPositively = new HashSet<>();
-    private final HashSet<ActorRef> respondedNegatively = new HashSet<>();
+    private final ActorRef<Message> client;
+    private final HashSet<ActorRef<Message>> respondedPositively = new HashSet<>();
+    private final HashSet<ActorRef<Message>> respondedNegatively = new HashSet<>();
     private final Integer lastVersionSeen;
     private DataElement latest = null;
 
-    public Get(Node node, ActorRef client, DataMsg.Get msg) {
+    public Get(Node node, ActorRef<Message> client, DataMsg.Get msg) {
         super(node);
         this.requestId = node.getFreshRequestId();
         this.client = client;
