@@ -29,6 +29,10 @@ public abstract class AbstractState {
 
     // UTILS ---------------------------------------------------------------
 
+    protected AbstractState default_option() {
+        return log_unhandled();
+    }
+
     protected AbstractState panic() {
         System.out.println("Something catastrofic happened");
         System.exit(1);
@@ -110,108 +114,108 @@ public abstract class AbstractState {
 
     // MESSAGE HANDLERS ---------------------------------------------------------------
     protected AbstractState handleResponsabilityRequest(NodeMsg.ResponsabilityRequest msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handlePassResponsabilityRequest(NodeMsg.PassResponsabilityRequest msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleBootstrapRequest(NodeMsg.BootstrapRequest req) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleReadRequest(NodeDataMsg.ReadRequest msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleNodeLeft(NotifyMsg.NodeLeft msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleNodeJoined(NotifyMsg.NodeJoined msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleRecover(StatusMsg.Recover msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleBootstrapResponse(NodeMsg.BootstrapResponse msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleGet(DataMsg.Get msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleResponsabilityResponse(NodeMsg.ResponsabilityResponse msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handlePassResponsabilityResponse(NodeMsg.PassResponsabilityResponse msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleReadResponse(NodeDataMsg.ReadResponse msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleCrash(StatusMsg.Crash msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleLeave(StatusMsg.Leave msg) {
-        return log_unhandled();
+        return default_option();
     }
 
 
     protected AbstractState handleUpdate(DataMsg.Update msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleInitialMembers(StatusMsg.InitialMembers msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleJoin(StatusMsg.Join msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleWriteLockRequest(NodeDataMsg.WriteLockRequest msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleWriteLockGranted(NodeDataMsg.WriteLockGranted msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleWriteLockDenied(NodeDataMsg.WriteLockDenied msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleWriteLockRelease(NodeDataMsg.WriteLockRelease msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleWriteRequest(NodeDataMsg.WriteRequest msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleWriteAck(NodeDataMsg.WriteAck msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleReadImpossibleForLock(NodeDataMsg.ReadImpossibleForLock msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleReadLockAcked(NodeDataMsg.ReadLockAcked msg) {
-        return log_unhandled();
+        return default_option();
     }
 
 }
