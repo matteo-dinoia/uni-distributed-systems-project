@@ -7,7 +7,7 @@ repositories {
     mavenCentral()
     mavenLocal()
     maven {
-        url "https://repo.akka.io/maven"
+        url = "https://repo.akka.io/maven"
     }
 }
 
@@ -22,16 +22,18 @@ dependencies {
     implementation "com.typesafe.akka:akka-bom_${versions.ScalaBinary}:${versions.AkkaVersion}"
     implementation "com.typesafe.akka:akka-actor-typed_${versions.ScalaBinary}:${versions.AkkaVersion}"
 
-    testImplementation "com.typesafe.akka:akka-actor-testkit-typed_${versions.ScalaBinary}:${versions.AkkaVersion}"
+    testImplementation "com.typesafe.akka:akka-actor-testkit-typed_${versions.ScalaBinary}"
     testImplementation "junit:junit:${versions.JunitVersion}"
     implementation "ch.qos.logback:logback-classic:${versions.LogBackVersion}"
 }
 
-compileJava {
-    options.compilerArgs += ["-Xlint:deprecation"]
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
 }
 
-mainClassName = "Main"
+application{
+    mainClass = "Main"
+}
 
 run {
     standardInput = System.in

@@ -33,11 +33,9 @@ public class Main {
         group.put(26, system.actorOf(NodeActor.props(26)));
 
         // send the group member list to everyone in the group
-        group = (HashMap<Integer, ActorRef>) Collections.unmodifiableMap(group);
-        StatusMsg.InitialMembers initialMsg = new StatusMsg.InitialMembers(1, group);
-        for (ActorRef peer : group.values()) {
+        StatusMsg.InitialMembers initialMsg = new StatusMsg.InitialMembers(1, Collections.unmodifiableMap(group));
+        for (ActorRef peer : group.values())
             peer.tell(initialMsg, null);
-        }
 
         // Close
         waitUntilEnter();
