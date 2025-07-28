@@ -7,10 +7,12 @@ import messages.client.StatusMsg;
 import messages.node_operation.NodeDataMsg;
 import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
-import node.*;
+import node.DataStorage;
+import node.MemberManager;
+import node.Node;
+import node.NodeState;
 
 import java.io.Serializable;
-import java.util.HashMap;
 
 // Return new state if it exist (else return this which mean no change)
 public abstract class AbstractState {
@@ -26,6 +28,10 @@ public abstract class AbstractState {
     }
 
     // UTILS ---------------------------------------------------------------
+
+    protected AbstractState default_option() {
+        return log_unhandled();
+    }
 
     protected AbstractState panic() {
         System.out.println("Something catastrofic happened");
@@ -107,128 +113,109 @@ public abstract class AbstractState {
 
 
     // MESSAGE HANDLERS ---------------------------------------------------------------
-
-    // Custom handler
     protected AbstractState handleResponsabilityRequest(NodeMsg.ResponsabilityRequest msg) {
-        HashMap<Integer, DataElement> toSend = new HashMap<>();
-        for (Integer key : storage.getAllKeys()) {
-            if (members.isResponsible(msg.requester(), key)) {
-                toSend.put(key, storage.get(key));
-            }
-        }
-
-        members.sendTo(msg.requester(), new NodeMsg.ResponsabilityResponse(msg.requestId(), members.getSelfId(), toSend));
-        return keepSameState();
+        return default_option();
     }
 
     protected AbstractState handlePassResponsabilityRequest(NodeMsg.PassResponsabilityRequest msg) {
-        // TODO maybe in normal, missing other surely...
-        throw new UnsupportedOperationException();
+        return default_option();
     }
 
     protected AbstractState handleBootstrapRequest(NodeMsg.BootstrapRequest req) {
-        HashMap<Integer, ActorRef<Message>> currentMembers = members.getMemberList();
-        members.sendTo(sender(), new NodeMsg.BootstrapResponse(req.requestId(), currentMembers));
-        return keepSameState();
+        return default_option();
     }
 
     protected AbstractState handleReadRequest(NodeDataMsg.ReadRequest msg) {
-        DataElement element = storage.get(msg.key());
-        members.sendTo(sender(), new NodeDataMsg.ReadResponse(msg.requestId(), element));
-        return keepSameState();
+        return default_option();
     }
 
     protected AbstractState handleNodeLeft(NotifyMsg.NodeLeft msg) {
-        // TODO
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleNodeJoined(NotifyMsg.NodeJoined msg) {
-        //TODO
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
-        return ignore();
+        return default_option();
     }
 
-    // Base responses
-
     protected AbstractState handleRecover(StatusMsg.Recover msg) {
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleBootstrapResponse(NodeMsg.BootstrapResponse msg) {
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleGet(DataMsg.Get msg) {
-        return log_unhandled();
+        return default_option();
     }
 
     protected AbstractState handleResponsabilityResponse(NodeMsg.ResponsabilityResponse msg) {
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handlePassResponsabilityResponse(NodeMsg.PassResponsabilityResponse msg) {
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleReadResponse(NodeDataMsg.ReadResponse msg) {
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleCrash(StatusMsg.Crash msg) {
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleLeave(StatusMsg.Leave msg) {
-        return panic();
+        return default_option();
     }
 
 
     protected AbstractState handleUpdate(DataMsg.Update msg) {
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleInitialMembers(StatusMsg.InitialMembers msg) {
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleJoin(StatusMsg.Join msg) {
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleWriteLockRequest(NodeDataMsg.WriteLockRequest msg) {
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleWriteLockGranted(NodeDataMsg.WriteLockGranted msg) {
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleWriteLockDenied(NodeDataMsg.WriteLockDenied msg) {
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleWriteLockRelease(NodeDataMsg.WriteLockRelease msg) {
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleWriteRequest(NodeDataMsg.WriteRequest msg) {
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleWriteAck(NodeDataMsg.WriteAck msg) {
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleReadImpossibleForLock(NodeDataMsg.ReadImpossibleForLock msg) {
-        return panic();
+        return default_option();
     }
 
     protected AbstractState handleReadLockAcked(NodeDataMsg.ReadLockAcked msg) {
-        return panic();
+        return default_option();
     }
 
 }

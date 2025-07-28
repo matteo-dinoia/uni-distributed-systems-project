@@ -33,7 +33,6 @@ public class NodeActor extends AbstractBehavior<Message> {
         var nextState = state.handle(msg.sender(), msg.content());
 
         if (nextState == null) {
-            // TODO MAYBE remove panics
             System.out.println("PANIC on node " + node.members().getSelfId());
         } else {
             if (!this.state.getNodeRepresentation().isValidChange(nextState.getNodeRepresentation()))
@@ -41,8 +40,7 @@ public class NodeActor extends AbstractBehavior<Message> {
             this.state = nextState;
         }
 
-        // TODO pls no
-        return create();
+        return this;
     }
 
 }
