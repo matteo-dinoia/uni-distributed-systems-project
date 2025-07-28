@@ -27,7 +27,7 @@ public class NodeMsg {
     }
 
     // TODO Use hashmap of key, data
-    public record PassResponsabilityRequest(int key, DataElement data, int requestId) implements Serializable {
+    public record PassResponsabilityRequest(int requestId, HashMap<Integer, DataElement> responsabilities) implements Serializable {
     }
 
     public record PassResponsabilityResponse(List<Integer> keys, int requestId) implements Serializable {
