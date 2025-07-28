@@ -1,35 +1,66 @@
 package node;
 
-
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.javadsl.ActorContext;
 import messages.Message;
 import messages.node_operation.NodeMsg;
 import scala.concurrent.duration.Duration;
+import utils.Config;
+import utils.Ring;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-// questa classe serve per le azioni che hanno a che fare con chi
-// è responsabile per cosa"
 
 public class MemberManager {
     private static final Random rnd = new Random();
     private final int selfId;
     private final ActorRef<Message> selfRef;
     private final ActorContext<Message> context;
-    private HashMap<Integer, ActorRef<Message>> memberList;
+    //private HashMap<Integer, ActorRef<Message>> memberList;
+    private final Ring<ActorRef<Message>> memberList;
 
 
     public MemberManager(int selfId, ActorRef<Message> selfRef, ActorContext<Message> context) {
         this.selfId = selfId;
         this.selfRef = selfRef;
-        this.memberList = new HashMap<>();
+        this.memberList = new Ring<>();
         this.context = context;
+    }
+
+    public void setMemberList(HashMap<Integer, ActorRef<Message>> members) {
+        this.memberList.replaceAll(members);
+    }
+
+    public void addMember(int key, ActorRef<Message> member) {
+        this.memberList.put(key, member);
+    }
+
+    public void removeMember(int key) {
+        this.memberList.remove(key);
+    }
+
+    public HashMap<Integer, ActorRef<Message>> getMemberList() {
+        return this.memberList.getHashMap();
+    }
+
+    public ActorRef<Message> getSelfRef() {
+        return selfRef;
+    }
+
+    public int getSelfId() {
+        return selfId;
+    }
+
+    // SENDERS
+
+    public void sendToAll(Serializable m) {
+        sendTo(memberList.getHashMap().values().stream(), m);
     }
 
     public void sendTo(Stream<ActorRef<Message>> dest, Serializable m) {
@@ -40,7 +71,6 @@ public class MemberManager {
         for (ActorRef<Message> p : dests)
             sendTo(p, m);
     }
-
 
     public void sendTo(ActorRef<Message> dest, Serializable m) {
         // simulate network delays using sleep
@@ -54,15 +84,6 @@ public class MemberManager {
         dest.tell(new Message(this.selfRef, m));
     }
 
-    public void sendTo(Predicate<Integer> filter, Serializable m) {
-        Stream<ActorRef<Message>> dests = this.memberList.entrySet().stream().filter(el -> filter.test(el.getKey())).map(Map.Entry::getValue);
-        sendTo(dests, m);
-    }
-
-    public void sendToAll(Serializable m) {
-        sendTo(memberList.values().stream(), m);
-    }
-
     public void scheduleSendTimeoutToMyself(int operationId) {
         var timeoutMsg = new Message(this.selfRef, new NodeMsg.Timeout(operationId));
 
@@ -73,62 +94,68 @@ public class MemberManager {
         );
     }
 
-    public void sendToDataResponsible(int key, Serializable m) {
-        // TODO HARD implement
-        throw new UnsupportedOperationException();
+    /// Return the amount of messages actually sent
+    /// This is needed as it is needed to know the amount of ack to wait
+    public void sendToWriteDataResponsible(int key, Serializable msg) {
+        sendTo(getResponsibleForData(key).stream(), msg);
     }
 
     public void sendTo2n(Serializable msg) {
-        // TODO HARD implement
-        throw new UnsupportedOperationException();
+        Integer key = memberList.getFloorKey(this.selfId);
+        assert key != null;
+
+        List<ActorRef<Message>> actors = memberList.getInterval(key, Config.N, Config.N);
+        sendTo(actors.stream(), msg);
     }
 
+    // DATA RESPONSABILITY
 
-    public void setMemberList(HashMap<Integer, ActorRef<Message>> members) {
-        this.memberList = members;
+    private List<ActorRef<Message>> getResponsibleForData(int key) {
+        Integer firstResponsible = memberList.getFloorKey(key);
+        assert firstResponsible != null;
+
+        return memberList.getInterval(firstResponsible, 0, Config.N);
+
     }
 
-    public HashMap<Integer, ActorRef<Message>> getMemberList() {
-        return this.memberList;
-    }
-
-    public ActorRef<Message> getSelfRef() {
-        return selfRef;
-    }
-
-    public int getSelfId() {
-        return selfId;
-    }
-
-    public boolean isResponsible(ActorRef<Message> requester, Integer key) {
-        // TODO HARD
-        throw new UnsupportedOperationException();
-    }
-
-    public int circularDistance(int from, int to) {
-        int size = memberList.size();
-        return (to - from + size) % size;
-    }
-
-    public boolean isCloserClockwise(int candidate, int current, int self) {
-        int size = memberList.size();
-        return circularDistance(self, candidate) > circularDistance(self, current);
-    }
-
-    public boolean isCloserCounterClockwise(int candidate, int current, int self) {
-        int size = memberList.size();
-        return circularDistance(candidate, self) > circularDistance(current, self);
-    }
-
-    public int countMembersBetweenIncluded(int closestHigherResponded, int closestLowerResponded) {
-        // TODO HARD count the entries between the two higher and lower responses.
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
-
-
+    /// Used when living find all responsible if there weren't himself
     public List<ActorRef<Message>> findNewResponsiblesFor(int key) {
-        // TODO HARD
-        throw new UnsupportedOperationException("Not implemented yet");
+
+    }
+
+    public boolean isResponsible(ActorRef<Message> actor, int key) {
+        return getResponsibleForData(key).contains(actor);
+    }
+
+    // COMPUTING DISTANCES
+
+
+    public Integer closerLower(Integer keyA, Integer keyB) {
+        if (keyA == null)
+            return keyB;
+        if (keyB == null)
+            return keyA;
+
+        if (memberList.circularDistance(keyA, selfId) < memberList.circularDistance(keyB, selfId))
+            return keyA;
+        else
+            return keyB;
+    }
+
+    public Integer closerHigher(Integer keyA, Integer keyB) {
+        if (keyA == null)
+            return keyB;
+        if (keyB == null)
+            return keyA;
+
+        if (memberList.circularDistance(selfId, keyA) < memberList.circularDistance(selfId, keyB))
+            return keyA;
+        else
+            return keyB;
+    }
+
+    public int countMembersBetweenIncluded(int lower, int higher) {
+        return memberList.circularDistance(lower, higher);
     }
 
 

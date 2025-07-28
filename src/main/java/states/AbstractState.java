@@ -121,6 +121,11 @@ public abstract class AbstractState {
         return keepSameState();
     }
 
+    protected AbstractState handlePassResponsabilityRequest(NodeMsg.PassResponsabilityRequest msg) {
+        // TODO maybe in normal, missing other surely...
+        throw new UnsupportedOperationException();
+    }
+
     protected AbstractState handleBootstrapRequest(NodeMsg.BootstrapRequest req) {
         HashMap<Integer, ActorRef<Message>> currentMembers = members.getMemberList();
         members.sendTo(sender(), new NodeMsg.BootstrapResponse(req.requestId(), currentMembers));
@@ -131,6 +136,16 @@ public abstract class AbstractState {
         DataElement element = storage.get(msg.key());
         members.sendTo(sender(), new NodeDataMsg.ReadResponse(msg.requestId(), element));
         return keepSameState();
+    }
+
+    protected AbstractState handleNodeLeft(NotifyMsg.NodeLeft msg) {
+        // TODO
+        return panic();
+    }
+
+    protected AbstractState handleNodeJoined(NotifyMsg.NodeJoined msg) {
+        //TODO
+        return panic();
     }
 
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
@@ -155,10 +170,6 @@ public abstract class AbstractState {
         return panic();
     }
 
-    protected AbstractState handlePassResponsabilityRequest(NodeMsg.PassResponsabilityRequest msg) {
-        return panic();
-    }
-
     protected AbstractState handlePassResponsabilityResponse(NodeMsg.PassResponsabilityResponse msg) {
         return panic();
     }
@@ -175,13 +186,6 @@ public abstract class AbstractState {
         return panic();
     }
 
-    protected AbstractState handleNodeLeft(NotifyMsg.NodeLeft msg) {
-        return panic();
-    }
-
-    protected AbstractState handleNodeJoined(NotifyMsg.NodeJoined msg) {
-        return panic();
-    }
 
     protected AbstractState handleUpdate(DataMsg.Update msg) {
         return panic();

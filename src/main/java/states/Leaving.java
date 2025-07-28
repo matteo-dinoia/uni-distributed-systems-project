@@ -19,7 +19,8 @@ public class Leaving extends AbstractState {
     public Leaving(Node node) {
         super(node);
         this.reqId = node.getFreshRequestId();
-        sendDataLeaving();
+        int requiredAck = sendDataLeaving();
+        // TODO case of zero
         members.scheduleSendTimeoutToMyself(reqId);
     }
 
@@ -28,18 +29,27 @@ public class Leaving extends AbstractState {
         return NodeState.LEAVING;
     }
 
-    private void sendDataLeaving() {
+    private int sendDataLeaving() {
         // TODO MEDIUM only send a single message for each destination (require circular struct or something similar)
+        HashMap<ActorRef<Message>, HashMap<Integer, DataElement>> new_responsability = new HashMap<>();
         for (Integer key : storage.getAllKeys()) {
             DataElement value = storage.get(key);
             List<ActorRef<Message>> newResponsibles = members.findNewResponsiblesFor(key);
 
             for (ActorRef<Message> target : newResponsibles) {
-                members.sendTo(target, new NodeMsg.PassResponsabilityRequest(key, value, reqId));
+                var set = new_responsability.computeIfAbsent(target, ignored -> new HashMap<>());
+                set.put(key, value);
             }
 
             ackCounts.put(key, 0);
         }
+
+        for (var target : new_responsability.keySet()) {
+            var list = new_responsability.get(target);
+            members.sendTo(target, new NodeMsg.PassResponsabilityRequest(reqId, list));
+        }
+
+        return new_responsability.size();
     }
 
     @Override
