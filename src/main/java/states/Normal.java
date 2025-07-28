@@ -5,6 +5,7 @@ import messages.Message;
 import messages.client.DataMsg;
 import messages.client.StatusMsg;
 import messages.node_operation.NodeDataMsg;
+import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
 import node.DataElement;
 import node.Node;
@@ -159,5 +160,30 @@ public class Normal extends AbstractState {
         return keepSameState();
     }
 
+
+    protected AbstractState handleResponsabilityRequest(NodeMsg.ResponsabilityRequest msg) {
+        HashMap<Integer, DataElement> toSend = new HashMap<>();
+        for (Integer key : storage.getAllKeys()) {
+            if (members.isResponsible(msg.requester(), key)) {
+                toSend.put(key, storage.get(key));
+            }
+        }
+
+        members.sendTo(msg.requester(), new NodeMsg.ResponsabilityResponse(msg.requestId(), members.getSelfId(), toSend));
+        return keepSameState();
+    }
+
+    @Override
+    protected AbstractState handlePassResponsabilityRequest(NodeMsg.PassResponsabilityRequest msg) {
+        // TODO maybe in normal, missing other surely...
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected AbstractState handleBootstrapRequest(NodeMsg.BootstrapRequest req) {
+        HashMap<Integer, ActorRef<Message>> currentMembers = members.getMemberList();
+        members.sendTo(sender(), new NodeMsg.BootstrapResponse(req.requestId(), currentMembers));
+        return keepSameState();
+    }
 
 }
