@@ -1,14 +1,16 @@
 package node;
 
-import akka.actor.ActorContext;
-import akka.actor.ActorRef;
+
+import akka.actor.typed.ActorRef;
+import akka.actor.typed.javadsl.ActorContext;
+import messages.Message;
 
 public class Node {
     private final MemberManager members;
     private final DataStorage storage;
     private int lastRequestId;
 
-    public Node(int selfId, ActorRef self, ActorContext context) {
+    public Node(int selfId, ActorRef<Message> self, ActorContext<Message> context) {
         this.members = new MemberManager(selfId, self, context);
         this.storage = new DataStorage();
         this.lastRequestId = -1;

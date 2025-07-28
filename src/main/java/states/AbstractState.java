@@ -1,6 +1,7 @@
 package states;
 
-import akka.actor.ActorRef;
+import akka.actor.typed.ActorRef;
+import messages.Message;
 import messages.client.DataMsg;
 import messages.client.StatusMsg;
 import messages.node_operation.NodeDataMsg;
@@ -16,7 +17,7 @@ public abstract class AbstractState {
     protected final MemberManager members;
     protected final DataStorage storage;
     protected final Node node;
-    private ActorRef sender = null;
+    private ActorRef<Message> sender = null;
 
     protected AbstractState(Node node) {
         this.node = node;
@@ -45,11 +46,11 @@ public abstract class AbstractState {
         return this;
     }
 
-    protected ActorRef sender() {
+    protected ActorRef<Message> sender() {
         return this.sender;
     }
 
-    protected void overwriteSender(ActorRef sender) {
+    protected void overwriteSender(ActorRef<Message> sender) {
         this.sender = sender;
     }
 
@@ -57,7 +58,7 @@ public abstract class AbstractState {
 
     // DISPATCHER  ---------------------------------------------------------------------
 
-    public final AbstractState handle(ActorRef sender, Serializable message) {
+    public final AbstractState handle(ActorRef<Message> sender, Serializable message) {
         overwriteSender(sender);
         return this.handle(message);
     }
@@ -121,7 +122,7 @@ public abstract class AbstractState {
     }
 
     protected AbstractState handleBootstrapRequest(NodeMsg.BootstrapRequest req) {
-        HashMap<Integer, ActorRef> currentMembers = members.getMemberList();
+        HashMap<Integer, ActorRef<Message>> currentMembers = members.getMemberList();
         members.sendTo(sender(), new NodeMsg.BootstrapResponse(req.requestId(), currentMembers));
         return keepSameState();
     }

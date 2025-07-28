@@ -1,6 +1,7 @@
 package states;
 
-import akka.actor.ActorRef;
+import akka.actor.typed.ActorRef;
+import messages.Message;
 import messages.node_operation.NodeMsg;
 import node.Node;
 import node.NodeState;
@@ -8,7 +9,7 @@ import node.NodeState;
 public class Recovering extends AbstractState {
     private final int reqId;
 
-    public Recovering(Node node, ActorRef bootstrapPeer) {
+    public Recovering(Node node, ActorRef<Message> bootstrapPeer) {
         super(node);
         this.reqId = node.getFreshRequestId();
         sendInitialMsg(bootstrapPeer);
@@ -19,7 +20,7 @@ public class Recovering extends AbstractState {
         return NodeState.RECOVERING;
     }
 
-    private void sendInitialMsg(ActorRef bootstrapPeer) {
+    private void sendInitialMsg(ActorRef<Message> bootstrapPeer) {
         members.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
         members.scheduleSendTimeoutToMyself(reqId);
     }

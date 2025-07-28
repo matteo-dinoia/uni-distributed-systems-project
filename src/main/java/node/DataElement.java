@@ -18,14 +18,6 @@ public class DataElement implements Serializable {
         this.readLocked = false;
     }
 
-    public DataElement(String value, int version) {
-        this.value = value;
-        this.version = version;
-        this.versionReadLocked = false;
-        this.lockedForWrite = false;
-        this.readLocked = false;
-    }
-
     /**
      * Returns the stored value, unless the element is locked for writing or read-locked.
      *
@@ -95,8 +87,7 @@ public class DataElement implements Serializable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof DataElement)) return false;
-        DataElement that = (DataElement) o;
+        if (!(o instanceof DataElement that)) return false;
         return version == that.version && Objects.equals(value, that.value);
     }
 

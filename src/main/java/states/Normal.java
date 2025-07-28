@@ -1,6 +1,7 @@
 package states;
 
-import akka.actor.ActorRef;
+import akka.actor.typed.ActorRef;
+import messages.Message;
 import messages.client.DataMsg;
 import messages.client.StatusMsg;
 import messages.node_operation.NodeDataMsg;
@@ -16,7 +17,7 @@ import java.util.HashMap;
 
 public class Normal extends AbstractState {
     // Map client to its own controller
-    public HashMap<ActorRef, AbstractState> substates;
+    public HashMap<ActorRef<Message>, AbstractState> substates;
 
     public Normal(Node node) {
         super(node);

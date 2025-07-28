@@ -1,6 +1,7 @@
 package states;
 
-import akka.actor.ActorRef;
+import akka.actor.typed.ActorRef;
+import messages.Message;
 import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
 import node.DataElement;
@@ -17,7 +18,8 @@ import java.util.Set;
 public class Joining extends AbstractState {
     // key: (data, how many replicas confirmed it)
     private final HashMap<Integer, Pair<DataElement, Integer>> receivedData = new HashMap<>();
-    private final Set<ActorRef> responded = new HashSet<>();
+    // TODO possible error
+    private final Set<ActorRef<Message>> responded = new HashSet<>();
     private final int reqId;
 
     private Integer closestHigherResponded = null;
@@ -45,7 +47,7 @@ public class Joining extends AbstractState {
         if (msg.requestId() != reqId)
             return ignore();
 
-        boolean enough_responded = addResponded(sender(), msg.senderId());
+        boolean enough_responded = addResponded(msg.senderId());
         boolean enough_quorum = addData(msg.data());
 
         if (enough_responded && enough_quorum) {
@@ -82,7 +84,7 @@ public class Joining extends AbstractState {
     }
 
     // TODO CHECK order of element that is counted correctly
-    private boolean addResponded(ActorRef sender, int senderId) {
+    private boolean addResponded(int senderId) {
         int selfId = members.getSelfId();
         responded.add(sender());
 
