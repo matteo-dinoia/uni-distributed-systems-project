@@ -5,6 +5,7 @@ import node.Node;
 import node.NodeState;
 
 import java.io.Serializable;
+import java.util.HashMap;
 
 public class Initial extends AbstractState {
     public Initial(Node node) {
@@ -27,7 +28,7 @@ public class Initial extends AbstractState {
 
     @Override
     protected AbstractState handleInitialMembers(StatusMsg.InitialMembers msg) {
-        members.setMemberList(msg.initial());
+        members.setMemberList(new HashMap<>(msg.initial()));
         return new Normal(super.node);
     }
 

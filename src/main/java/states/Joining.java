@@ -102,7 +102,7 @@ public class Joining extends AbstractState {
             int key = entry.getKey();
             DataElement new_value = entry.getValue();
 
-            Pair<DataElement, Integer> pair = receivedData.computeIfAbsent(key, _ -> new Pair<>(new_value, 0));
+            Pair<DataElement, Integer> pair = receivedData.computeIfAbsent(key, ignored -> new Pair<>(new_value, 0));
             pair.setRight(pair.getRight() + 1);
             if (pair.getLeft().getVersion() < new_value.getVersion()) {
                 pair.setLeft(new_value);
