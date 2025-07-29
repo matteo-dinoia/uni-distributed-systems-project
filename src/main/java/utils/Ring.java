@@ -25,9 +25,14 @@ public class Ring<T> {
         ring = new TreeMap<>();
     }
 
-    public void replaceAll(HashMap<Integer, T> members) {
+    public T get(int key) {
+        var elem = ring.get(key);
+        return elem == null ? null : elem.value;
+    }
+
+    public void replaceAll(HashMap<Integer, T> newValues) {
         ring.clear();
-        for (var entry : members.entrySet())
+        for (var entry : newValues.entrySet())
             this.put(entry.getKey(), entry.getValue());
     }
 

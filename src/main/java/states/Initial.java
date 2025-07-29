@@ -1,6 +1,7 @@
 package states;
 
 import messages.client.StatusMsg;
+import messages.control.ControlMsg;
 import node.Node;
 import node.NodeState;
 
@@ -29,6 +30,7 @@ public class Initial extends AbstractState {
     @Override
     protected AbstractState handleInitialMembers(StatusMsg.InitialMembers msg) {
         members.setMemberList(new HashMap<>(msg.initial()));
+        members.sendTo(sender(), new ControlMsg.InitialMembersAck());
         return new Normal(super.node);
     }
 
