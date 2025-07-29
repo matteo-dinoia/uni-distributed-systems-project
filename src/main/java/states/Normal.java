@@ -4,6 +4,7 @@ import akka.actor.typed.ActorRef;
 import messages.Message;
 import messages.client.DataMsg;
 import messages.client.StatusMsg;
+import messages.control.ControlMsg;
 import messages.node_operation.NodeDataMsg;
 import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
@@ -31,23 +32,11 @@ public class Normal extends AbstractState {
     }
 
     @Override
-    public AbstractState handle(Serializable message) {
-        return switch (message) {
-            case StatusMsg.Crash msg -> handleCrash(msg);
-            case StatusMsg.Leave msg -> handleLeave(msg);
-            case NotifyMsg.NodeJoined msg -> handleNodeJoined(msg);
-            case NotifyMsg.NodeLeft msg -> handleNodeLeft(msg);
-            case DataMsg.Get msg -> handleGet(msg);
-            case DataMsg.Update msg -> handleUpdate(msg);
-            default -> handleSubstates(message);
-        };
-    }
-
-    @Override
     protected AbstractState handleCrash(StatusMsg.Crash msg) {
         if (!substates.isEmpty()) {
             return panic();
         }
+        members.sendTo(sender(), new ControlMsg.CrashAck());
         return new Crashed(super.node);
     }
 
@@ -181,6 +170,7 @@ public class Normal extends AbstractState {
 
     @Override
     protected AbstractState handleBootstrapRequest(NodeMsg.BootstrapRequest req) {
+        System.out.println("LOL");
         HashMap<Integer, ActorRef<Message>> currentMembers = members.getMemberList();
         members.sendTo(sender(), new NodeMsg.BootstrapResponse(req.requestId(), currentMembers));
         return keepSameState();

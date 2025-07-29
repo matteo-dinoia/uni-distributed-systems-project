@@ -4,6 +4,7 @@ import akka.actor.typed.ActorRef;
 import messages.Message;
 import messages.client.DataMsg;
 import messages.client.StatusMsg;
+import messages.control.ControlMsg;
 import messages.node_operation.NodeDataMsg;
 import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
@@ -66,11 +67,18 @@ public abstract class AbstractState {
 
     public final AbstractState handle(ActorRef<Message> sender, Serializable message) {
         overwriteSender(sender);
-        return this.handle(message);
+        System.out.println("NODE " + members.getSelfId() + " RECEIVED  " + message.toString());
+
+        return switch (message) {
+            // ───────────── Debug (not overwritable) ─────────────
+            case ControlMsg.DebugGetCurrentState msg -> handleDebugGetCurrentState(msg);
+            default -> this.handle(message);
+        };
     }
 
     // Overriding this ignore all default handler
     protected AbstractState handle(Serializable message) {
+
         return switch (message) {
             // ───────────── Join ─────────────
             case StatusMsg.Join msg -> handleJoin(msg);
@@ -109,6 +117,13 @@ public abstract class AbstractState {
             case NodeDataMsg.ReadLockAcked msg -> handleReadLockAcked(msg);
             default -> throw new IllegalStateException("Unexpected message: " + message);
         };
+    }
+
+    // CUSTOM MESSAGE HANDLERS ---------------------------------------------------------------
+    private AbstractState handleDebugGetCurrentState(ControlMsg.DebugGetCurrentState ignored) {
+        System.out.println("LOL ");
+        members.sendTo(sender(), new ControlMsg.DebugCurrentState(getNodeRepresentation()));
+        return this;
     }
 
 

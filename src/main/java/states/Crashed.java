@@ -7,7 +7,6 @@ import node.NodeState;
 import java.io.Serializable;
 
 public class Crashed extends AbstractState {
-
     public Crashed(Node node) {
         super(node);
     }
@@ -27,7 +26,7 @@ public class Crashed extends AbstractState {
 
     @Override
     protected AbstractState handleRecover(StatusMsg.Recover msg) {
-        return new Recovering(super.node, msg.bootstrappingPear());
+        return new Recovering(super.node, sender(), msg.bootstrappingPear());
     }
 
 }

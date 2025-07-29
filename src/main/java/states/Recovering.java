@@ -2,16 +2,19 @@ package states;
 
 import akka.actor.typed.ActorRef;
 import messages.Message;
+import messages.control.ControlMsg;
 import messages.node_operation.NodeMsg;
 import node.Node;
 import node.NodeState;
 
 public class Recovering extends AbstractState {
     private final int reqId;
+    private final ActorRef<Message> mainActorRef;
 
-    public Recovering(Node node, ActorRef<Message> bootstrapPeer) {
+    public Recovering(Node node, ActorRef<Message> mainActorRef, ActorRef<Message> bootstrapPeer) {
         super(node);
         this.reqId = node.getFreshRequestId();
+        this.mainActorRef = mainActorRef;
         sendInitialMsg(bootstrapPeer);
     }
 
@@ -32,6 +35,8 @@ public class Recovering extends AbstractState {
 
         members.setMemberList(msg.updatedMembers());
         storage.discardKeysNotUnderResponsibility(members);
+
+        members.sendTo(mainActorRef, new ControlMsg.RecoverAck(true));
         return new Normal(super.node);
     }
 
@@ -39,6 +44,7 @@ public class Recovering extends AbstractState {
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
         if (msg.operationId() != reqId)
             return ignore();
+        members.sendTo(mainActorRef, new ControlMsg.RecoverAck(false));
         return new Crashed(super.node);
     }
 

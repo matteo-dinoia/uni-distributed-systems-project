@@ -4,7 +4,6 @@ import akka.actor.typed.ActorRef;
 import akka.actor.typed.javadsl.ActorContext;
 import messages.Message;
 import messages.node_operation.NodeMsg;
-import scala.concurrent.duration.Duration;
 import utils.Config;
 import utils.Ring;
 
@@ -13,7 +12,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -58,20 +56,20 @@ public class MemberManager {
 
     // SENDERS
 
-    public void sendToAll(Serializable m) {
-        sendTo(memberList.getHashMap().values().stream(), m);
+    public void sendToAll(Serializable msg) {
+        sendTo(memberList.getHashMap().values().stream(), msg);
     }
 
-    public void sendTo(Stream<ActorRef<Message>> dest, Serializable m) {
+    public void sendTo(Stream<ActorRef<Message>> dest, Serializable msg) {
         // randomly arrange peers
         var dests = dest.collect(Collectors.toList());
         Collections.shuffle(dests);
 
         for (ActorRef<Message> p : dests)
-            sendTo(p, m);
+            sendTo(p, msg);
     }
 
-    public void sendTo(ActorRef<Message> dest, Serializable m) {
+    public void sendTo(ActorRef<Message> dest, Serializable msg) {
         // simulate network delays using sleep
         try {
             Thread.sleep(rnd.nextInt(10));
@@ -80,14 +78,16 @@ public class MemberManager {
         }
 
         // It is allowed sending to himself
-        dest.tell(new Message(this.selfRef, m));
+        System.out.println("NODE " + this.getSelfId() + " SENT  " + msg.toString());
+        dest.tell(new Message(this.selfRef, msg));
     }
 
     public void scheduleSendTimeoutToMyself(int operationId) {
         var timeoutMsg = new Message(this.selfRef, new NodeMsg.Timeout(operationId));
+        System.out.println("SCHEDULED TIMEOUT on node " + this.getSelfId());
 
         context.getSystem().scheduler().scheduleOnce(
-                Duration.create(1000, TimeUnit.MILLISECONDS),
+                Config.TIMEOUT,
                 () -> this.selfRef.tell(timeoutMsg),
                 context.getExecutionContext()
         );
