@@ -13,15 +13,19 @@ public class NodeActor extends AbstractBehavior<Message> {
     private AbstractState state;
     private final Node node;
 
-    public NodeActor(ActorContext<Message> context) {
+    public NodeActor(ActorContext<Message> context, int nodeId, AbstractState state) {
         super(context);
-        this.node = null;
-        //this.node = new Node(nodeId, self(), context());
-        this.state = new Initial(node);
+        this.node = new Node(nodeId, context);
+
+        this.state = state != null ? state : new Initial(node);
     }
 
-    public static Behavior<Message> create() {
-        return Behaviors.setup(NodeActor::new);
+    public static Behavior<Message> create(int nodeId) {
+        return create(nodeId, null);
+    }
+
+    public static Behavior<Message> create(int nodeId, AbstractState state) {
+        return Behaviors.setup(context -> new NodeActor(context, nodeId, state));
     }
 
     @Override

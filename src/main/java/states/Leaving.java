@@ -20,7 +20,8 @@ public class Leaving extends AbstractState {
         super(node);
         this.reqId = node.getFreshRequestId();
         int requiredAck = sendDataLeaving();
-        // TODO case of zero
+        // TODO need to change state immediately fuck
+        // TODO case of zero and case negative
         members.scheduleSendTimeoutToMyself(reqId);
     }
 
@@ -30,11 +31,13 @@ public class Leaving extends AbstractState {
     }
 
     private int sendDataLeaving() {
-        // TODO MEDIUM only send a single message for each destination (require circular struct or something similar)
         HashMap<ActorRef<Message>, HashMap<Integer, DataElement>> new_responsability = new HashMap<>();
         for (Integer key : storage.getAllKeys()) {
             DataElement value = storage.get(key);
             List<ActorRef<Message>> newResponsibles = members.findNewResponsiblesFor(key);
+            if (newResponsibles == null) {
+                return -1;
+            }
 
             for (ActorRef<Message> target : newResponsibles) {
                 var set = new_responsability.computeIfAbsent(target, ignored -> new HashMap<>());
