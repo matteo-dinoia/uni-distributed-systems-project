@@ -95,7 +95,7 @@ public class MemberManager {
 
     /// Return the amount of messages actually sent
     /// This is needed as it is needed to know the amount of ack to wait
-    public void sendToWriteDataResponsible(int key, Serializable msg) {
+    public void sendToDataResponsible(int key, Serializable msg) {
         sendTo(getResponsibleForData(key).stream(), msg);
     }
 
