@@ -2,6 +2,7 @@ package states;
 
 import akka.actor.typed.ActorRef;
 import messages.Message;
+import messages.control.ControlMsg;
 import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
 import node.DataElement;
@@ -15,14 +16,23 @@ import java.util.List;
 public class Leaving extends AbstractState {
     private final int reqId;
     private final HashMap<Integer, Integer> ackCounts = new HashMap<>();
+    private final ActorRef<Message> mainActorRef;
 
-    public Leaving(Node node) {
+    private Leaving(Node node, ActorRef<Message> mainActorRef) {
         super(node);
         this.reqId = node.getFreshRequestId();
-        int requiredAck = sendDataLeaving();
-        // TODO need to change state immediately fuck
-        // TODO case of zero and case negative
+        this.mainActorRef = mainActorRef;
+
+        sendDataLeaving();
         members.scheduleSendTimeoutToMyself(reqId);
+    }
+
+    public static AbstractState enter(Node node, ActorRef<Message> mainActorRef) {
+        Leaving leaving = new Leaving(node, mainActorRef);
+        if (node.storage().getAllKeys().isEmpty())
+            return leaving.concludeLeave();
+
+        return leaving;
     }
 
     @Override
@@ -30,14 +40,11 @@ public class Leaving extends AbstractState {
         return NodeState.LEAVING;
     }
 
-    private int sendDataLeaving() {
+    private void sendDataLeaving() {
         HashMap<ActorRef<Message>, HashMap<Integer, DataElement>> new_responsability = new HashMap<>();
         for (Integer key : storage.getAllKeys()) {
             DataElement value = storage.get(key);
             List<ActorRef<Message>> newResponsibles = members.findNewResponsiblesFor(key);
-            if (newResponsibles == null) {
-                return -1;
-            }
 
             for (ActorRef<Message> target : newResponsibles) {
                 var set = new_responsability.computeIfAbsent(target, ignored -> new HashMap<>());
@@ -51,8 +58,6 @@ public class Leaving extends AbstractState {
             var list = new_responsability.get(target);
             members.sendTo(target, new NodeMsg.PassResponsabilityRequest(reqId, list));
         }
-
-        return new_responsability.size();
     }
 
     @Override
@@ -64,8 +69,7 @@ public class Leaving extends AbstractState {
         }
 
         if (allKeysConfirmed()) {
-            members.sendToAll(new NotifyMsg.NodeLeft(members.getSelfId(), members.getSelfRef()));
-            return new Left(super.node);
+            return concludeLeave();
         }
 
         return keepSameState();
@@ -75,12 +79,23 @@ public class Leaving extends AbstractState {
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
         if (msg.operationId() != reqId) return ignore();
 
-        members.sendToAll(new NodeMsg.RollbackPassResponsability(reqId));
-        return new Normal(super.node);
+        return rollbackLeave();
     }
 
     private boolean allKeysConfirmed() {
         return ackCounts.values().stream().allMatch(count -> count >= Config.W);
+    }
+
+    private AbstractState concludeLeave() {
+        members.sendToAll(new NotifyMsg.NodeLeft(members.getSelfId(), members.getSelfRef()));
+        members.sendTo(mainActorRef, new ControlMsg.LeaveAck(true));
+        return new Left(node);
+    }
+
+    private AbstractState rollbackLeave() {
+        members.sendToAll(new NodeMsg.RollbackPassResponsability(reqId));
+        members.sendTo(mainActorRef, new ControlMsg.LeaveAck(false));
+        return new Normal(super.node);
     }
 }
 

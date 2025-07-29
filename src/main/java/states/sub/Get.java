@@ -25,9 +25,9 @@ public class Get extends AbstractState {
     private final Integer lastVersionSeen;
     private DataElement latest = null;
 
-    public Get(Node node, ActorRef<Message> client, DataMsg.Get msg) {
+    public Get(Node node, ActorRef<Message> client, DataMsg.Get msg, int requestId) {
         super(node);
-        this.requestId = node.getFreshRequestId();
+        this.requestId = requestId;
         this.client = client;
         this.key = msg.key();
         this.lastVersionSeen = msg.last_version_seen();
@@ -47,6 +47,7 @@ public class Get extends AbstractState {
 
     @Override
     protected AbstractState handleReadResponse(NodeDataMsg.ReadResponse msg) {
+        System.out.println("LOL HEER");
         if (msg.requestId() != requestId) return ignore();
 
         respondedPositively.add(sender());
@@ -80,6 +81,7 @@ public class Get extends AbstractState {
     }
 
     private boolean checkFinished() {
+        System.out.println("COmpleted " + respondedPositively.size());
         if (respondedPositively.size() < Config.R)
             return false;
 

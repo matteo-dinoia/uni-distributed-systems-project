@@ -52,9 +52,9 @@ public class Update extends AbstractState {
     // Phase 3: track read locks acknowledgments
     private final HashSet<ActorRef<Message>> writeAcked = new HashSet<>();
 
-    public Update(Node node, ActorRef<Message> client, DataMsg.Update msg) {
+    public Update(Node node, ActorRef<Message> client, DataMsg.Update msg, int requestId) {
         super(node);
-        this.requestId = node.getFreshRequestId();
+        this.requestId = requestId;
         this.client = client;
         this.key = msg.key();
         this.newValue = msg.newValue();

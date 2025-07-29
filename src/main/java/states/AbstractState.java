@@ -57,7 +57,7 @@ public abstract class AbstractState {
         return this.sender;
     }
 
-    protected void overwriteSender(ActorRef<Message> sender) {
+    private void overwriteSender(ActorRef<Message> sender) {
         this.sender = sender;
     }
 

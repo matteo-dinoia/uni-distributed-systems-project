@@ -5,17 +5,19 @@ import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import akka.actor.typed.ActorRef;
 import messages.Message;
+import messages.client.DataMsg;
+import messages.client.ResponseMsgs;
 import messages.client.StatusMsg;
 import messages.control.ControlMsg;
 import node.NodeActor;
 import node.NodeState;
 import utils.Config;
-import utils.Pair;
 import utils.Ring;
 
 import java.io.Serializable;
 import java.time.Duration;
-import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 
@@ -32,6 +34,7 @@ public class Tester implements AutoCloseable {
             throw new RuntimeException("Cannot initialize because too little nodes");
 
         initializeMembers(initialNodes);
+        System.out.println();
     }
 
     private void initializeMembers(Set<Integer> initialNodes) {
@@ -68,8 +71,17 @@ public class Tester implements AutoCloseable {
         recipient.tell(crashMsg);
     }
 
+    private void assertOrThrows(boolean condition, String error) {
+        if (!condition)
+            throw new RuntimeException(error);
+    }
+
 
     /// OPERATION UTILITIES:
+
+    public Client getClient() {
+        return new Client(getProbe());
+    }
 
     public NodeState getNodeState(int nodeId) {
         ActorRef<Message> node = getNode(nodeId);
@@ -83,111 +95,115 @@ public class Tester implements AutoCloseable {
         return realState;
     }
 
-    /**
-     * GET+UPDATE: send ReadRequest and Update, wait for ReadResponse and WriteFullyCompleted
-     */
-    public boolean operationIO(List<Integer> getNodeIds, List<Pair<Integer, String>> updateOps) {
-//        TestProbe<Message> readProbe = testKit.createTestProbe(Message.class);
-//        TestProbe<Message> writeProbe = testKit.createTestProbe(Message.class);
-//
-//        int reqId = 1;
-//        for (Integer id : getNodeIds) {
-//            group.get(id).tell(
-//                    new Message(readProbe.getRef(), new NodeDataMsg.ReadRequest(reqId++, id)
-//                    )
-//            );
-//        }
-//        for (Pair<Integer, String> op : updateOps) {
-//            int id = op.getLeft();
-//            String v = op.getRight();
-//            group.get(id).tell(new Message(writeProbe.getRef(), new NodeDataMsg.WriteRequest(reqId++, id, v, 0)));
-//        }
-//
-//        try {
-//            for (int i = 0; i < getNodeIds.size(); i++) {
-//                //readProbe.expectMessage(Duration.ofSeconds(3));
-//            }
-//            for (int i = 0; i < updateOps.size(); i++) {
-//                //writeProbe.expectMessage(Duration.ofSeconds(3));
-//            }
-//            return true;
-//        } catch (AssertionError ex) {
-//            return false;
-//        }
-        throw new UnsupportedOperationException("Unimplemented");
+    /// GET+UPDATE: send ReadRequest and Update, wait for ReadResponse and WriteFullyCompleted
+    /// Return number of successful operation
+    public int clientOperation(Map<Client, ClientOperation> operations) {
+        TestProbe<Message> probe = getProbe();
+
+        for (var operation : operations.entrySet()) {
+            Client client = operation.getKey();
+            ClientOperation op = operation.getValue();
+
+            switch (op) {
+                case ClientOperation.Read(int key, int nodeId) -> {
+                    Integer lastVersion = client.getKeyLatestVersion(key);
+                    send(client.getReceiver(), getNode(nodeId), new DataMsg.Get(key, lastVersion));
+                }
+                case ClientOperation.Write(int key, int nodeId) -> {
+                    String newValue = "randValue=" + new Random().nextInt();
+                    send(client.getReceiver(), getNode(nodeId), new DataMsg.Update(key, newValue));
+                }
+                default -> throw new IllegalStateException("Someone made a new subclass and didn't add it here");
+            }
+        }
+
+
+        int successful = 0;
+        for (var operation : operations.entrySet()) {
+            Client client = operation.getKey();
+            boolean isRead = (operation.getValue() instanceof ClientOperation.Read ignored);
+
+            int key = switch (operation.getValue()) {
+                case ClientOperation.Read(int k, int ignored) -> k;
+                case ClientOperation.Write(int k, int ignored) -> k;
+                default -> throw new IllegalStateException("Someone made a new subclass and didn't add it here");
+            };
+
+            int nodeId = switch (operation.getValue()) {
+                case ClientOperation.Read(int ignored, int node) -> node;
+                case ClientOperation.Write(int ignored, int node) -> node;
+                default -> throw new IllegalStateException("Someone made a new subclass and didn't add it here");
+            };
+
+            Serializable content = client.getReceiver().receiveMessage(TIMEOUT_PROBE).content();
+
+            switch (content) {
+                case ResponseMsgs.ReadSucceeded msg -> {
+                    assertOrThrows(isRead, "Unexpected Message received");
+                    client.setKeyLatestVersion(msg.key(), msg.version());
+                    successful++;
+                }
+                case ResponseMsgs.ReadResultFailed ignored -> {
+                    assertOrThrows(isRead, "Unexpected Message received");
+                }
+                case ResponseMsgs.ReadResultInexistentValue ignored -> {
+                    assertOrThrows(isRead, "Unexpected Message received");
+                    successful++;
+                }
+                case ResponseMsgs.ReadTimeout ignored -> {
+                    assertOrThrows(isRead, "Unexpected Message received");
+                }
+                case ResponseMsgs.WriteSucceeded msg -> {
+                    assertOrThrows(!isRead, "Unexpected Message received");
+                    client.setKeyLatestVersion(msg.key(), msg.newVersion());
+                    successful++;
+                }
+                case ResponseMsgs.WriteTimeout ignored -> {
+                    assertOrThrows(!isRead, "Unexpected Message received");
+                }
+                default -> throw new RuntimeException("Unexpected Message received");
+            }
+
+            if (!isRead)
+                client.getReceiver().expectMessage(TIMEOUT_PROBE, new Message(getNode(nodeId), new ControlMsg.WriteFullyCompleted()));
+        }
+
+        return successful;
     }
 
     /// JOIN: send StatusMsg.Join wrapped in Message and wait for JoinAck
-    public boolean join(int joinerId) {
-//        ActorRef<Message> newNode = testKit.spawn(NodeActor.create(joinerId), "node" + joinerId);
-//        group.put(joinerId, newNode);
-//
-//        TestProbe<Message> probe = testKit.createTestProbe(Message.class);
-//
-//        ActorRef<Message> bootstrapNode = null;
-//
-//        for (var entry : group.entrySet()) {
-//            if (!entry.getKey().equals(joinerId)) {
-//                bootstrapNode = entry.getValue();
-//                break;
-//            }
-//        }
-//
-//        if (bootstrapNode == null) {
-//            bootstrapNode = newNode;
-//        }
-//
-//        Message joinMsg = new Message(probe.getRef(), new StatusMsg.Join(bootstrapNode));
-//        //Message joinMsg = new Message(probe.getRef(), new StatusMsg.Join(..., joinerId));
-//
-//        int peers = group.size() - 1;
-//        for (var e : group.entrySet()) {
-//            if (!e.getKey().equals(joinerId)) {
-//                e.getValue().tell(joinMsg);
-//            }
-//        }
-//
-//        try {
-//            for (int i = 0; i < peers; i++) {
-//                //probe.expectMessage(Duration.ofSeconds(3));
-//            }
-//        } catch (AssertionError ex) {
-//            group.remove(joinerId);
-//            return false;
-//        }
-//
-//        return true;
-        throw new UnsupportedOperationException("Unimplemented");
+    public boolean join(int nodeId) {
+        ActorRef<Message> node = testKit.spawn(NodeActor.create(nodeId), "Node" + nodeId);
+
+        TestProbe<Message> probe = getProbe();
+
+        Integer leftKey = group.getCeilKey(nodeId - 1);
+        ActorRef<Message> bootstrapNode = getNode(leftKey);
+
+        send(probe, node, new StatusMsg.Join(bootstrapNode));
+        Serializable content = probe.receiveMessage(TIMEOUT_PROBE).content();
+
+        if (!(content instanceof ControlMsg.JoinAck(boolean joined)))
+            throw new RuntimeException("Wrong message received");
+
+        if (joined)
+            group.put(nodeId, node);
+        else
+            testKit.stop(node);
+        return joined;
     }
 
     /// LEAVE: send StatusMsg.Leave wrapped in Message and wait for LeaveAck
-    public boolean leave(int leaverId) {
-//        ActorRef<Message> node = group.get(leaverId);
-//        if (node == null) return false;
-//
-//        TestProbe<Message> probe =
-//                testKit.createTestProbe(Message.class);
-//        Message leaveMsg = new Message(probe.getRef(), new StatusMsg.Leave());
-//
-//
-//        int peers = group.size() - 1;
-//        for (var e : group.entrySet()) {
-//            if (!e.getKey().equals(leaverId)) {
-//                e.getValue().tell(leaveMsg);
-//            }
-//        }
-//
-//        try {
-//            for (int i = 0; i < peers; i++) {
-//                //probe.expectMessage(Duration.ofSeconds(3));
-//            }
-//            group.remove(leaverId);
-//            return true;
-//        } catch (AssertionError ex) {
-//            group.remove(leaverId);
-//            return false;
-//        }
-        throw new UnsupportedOperationException("Unimplemented");
+    public boolean leave(int nodeId) {
+        ActorRef<Message> node = getNode(nodeId);
+        TestProbe<Message> probe = getProbe();
+
+        send(probe, node, new StatusMsg.Leave());
+        Serializable content = probe.receiveMessage(TIMEOUT_PROBE).content();
+
+        if (!(content instanceof ControlMsg.LeaveAck(boolean left)))
+            throw new RuntimeException("Wrong message received");
+        return left;
     }
 
     /// RECOVER: send StatusMsg.Recover wrapped in Message and wait for RecoverAck

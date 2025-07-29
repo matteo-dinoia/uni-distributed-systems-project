@@ -4,10 +4,15 @@ import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import node.NodeState;
 import org.junit.ClassRule;
 import org.junit.Test;
+import tester.Client;
+import tester.ClientOperation;
 import tester.Tester;
 import utils.Utils;
 
+import java.util.Map;
 import java.util.Set;
+
+import static java.util.Map.entry;
 
 public class Testing {
     @ClassRule
@@ -48,6 +53,41 @@ public class Testing {
             test.crash(3);
             boolean recovered = test.recover(3);
             assert recovered;
+        }
+    }
+
+    @Test
+    public void testJoin() {
+        try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
+            boolean joined = test.join(6);
+            assert joined;
+        }
+    }
+
+    @Test
+    public void testLeave() {
+        try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
+            boolean left = test.leave(4);
+            assert left;
+        }
+    }
+
+    @Test
+    public void testReadInexistentValid() {
+        try (Tester test = new Tester(testKit, Set.of(1, 2, 4, 5, 6))) {
+            Client client = test.getClient();
+            int succedeed = test.clientOperation(Map.ofEntries(entry(client, new ClientOperation.Read(3, 5))));
+            // TODO Fix
+            assert succedeed == 0;
+        }
+    }
+
+    @Test
+    public void testWriteNew() {
+        try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
+            Client client = test.getClient();
+            int succedeed = test.clientOperation(Map.ofEntries(entry(client, new ClientOperation.Write(2, 3))));
+            assert succedeed == 1;
         }
     }
 }
