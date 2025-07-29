@@ -121,7 +121,6 @@ public abstract class AbstractState {
 
     // CUSTOM MESSAGE HANDLERS ---------------------------------------------------------------
     private AbstractState handleDebugGetCurrentState(ControlMsg.DebugGetCurrentState ignored) {
-        System.out.println("LOL ");
         members.sendTo(sender(), new ControlMsg.DebugCurrentState(getNodeRepresentation()));
         return this;
     }

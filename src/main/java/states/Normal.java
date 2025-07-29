@@ -170,7 +170,6 @@ public class Normal extends AbstractState {
 
     @Override
     protected AbstractState handleBootstrapRequest(NodeMsg.BootstrapRequest req) {
-        System.out.println("LOL");
         HashMap<Integer, ActorRef<Message>> currentMembers = members.getMemberList();
         members.sendTo(sender(), new NodeMsg.BootstrapResponse(req.requestId(), currentMembers));
         return keepSameState();
