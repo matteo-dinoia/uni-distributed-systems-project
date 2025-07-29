@@ -1,16 +1,15 @@
 package messages.control;
 
-import akka.actor.typed.ActorRef;
-import messages.Message;
-
 import java.io.Serializable;
 
 public class ControlMsg {
+    public record LeaveAck() implements Serializable {}
 
-    public static record NewMemberJoined(int nodeId, ActorRef<Message> replyTo) implements Serializable {
-    }
+    public record RecoverAck() implements Serializable {}
 
-    public static record NewMemberJoinedAck() implements Serializable {
-    }
+    public record CrashAck() implements Serializable {}
 
+    public record JoinAck() implements Serializable {}
+
+    public record WriteFullyCompleted() implements Serializable {}
 }

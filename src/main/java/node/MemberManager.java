@@ -22,13 +22,12 @@ public class MemberManager {
     private final int selfId;
     private final ActorRef<Message> selfRef;
     private final ActorContext<Message> context;
-    //private HashMap<Integer, ActorRef<Message>> memberList;
     private final Ring<ActorRef<Message>> memberList;
 
 
-    public MemberManager(int selfId, ActorRef<Message> selfRef, ActorContext<Message> context) {
+    public MemberManager(int selfId, ActorContext<Message> context) {
         this.selfId = selfId;
-        this.selfRef = selfRef;
+        this.selfRef = context.getSelf();
         this.memberList = new Ring<>();
         this.context = context;
     }
@@ -120,7 +119,15 @@ public class MemberManager {
 
     /// Used when living find all responsible if there weren't himself
     public List<ActorRef<Message>> findNewResponsiblesFor(int key) {
+        Integer firstResponsible = memberList.getFloorKey(key);
+        assert firstResponsible != null;
 
+        List<ActorRef<Message>> list = memberList.getInterval(firstResponsible, 0, Config.N + 1);
+        list.remove(getSelfId());
+
+        if (list.size() < Config.N)
+            return null;
+        return list;
     }
 
     public boolean isResponsible(ActorRef<Message> actor, int key) {
