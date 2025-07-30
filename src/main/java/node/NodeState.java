@@ -16,7 +16,8 @@ public enum NodeState {
 
         return switch (this) {
             case TO_START -> nextState == NodeState.JOINING || nextState == NodeState.NORMAL;
-            case NORMAL -> nextState == NodeState.CRASHED || nextState == NodeState.LEAVING;
+            case NORMAL ->
+                    nextState == NodeState.CRASHED || nextState == NodeState.LEAVING || nextState == NodeState.LEFT;
             case CRASHED -> nextState == NodeState.RECOVERING;
             case JOINING, SUB -> nextState == NodeState.NORMAL;
             case RECOVERING -> nextState == NodeState.NORMAL || nextState == NodeState.CRASHED;
