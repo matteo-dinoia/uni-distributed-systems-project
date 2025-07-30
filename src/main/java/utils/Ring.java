@@ -113,7 +113,7 @@ public class Ring<T> {
             return null;
 
         List<T> leftList = getPartialInterval(startPoint, leftSize, false);
-        List<T> rightList = getPartialInterval(startPoint, leftSize, true);
+        List<T> rightList = getPartialInterval(startPoint, rightSize, true);
 
         ArrayList<T> res = new ArrayList<>();
         res.addAll(leftList);

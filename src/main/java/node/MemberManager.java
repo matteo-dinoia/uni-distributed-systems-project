@@ -78,7 +78,7 @@ public class MemberManager {
         }
 
         // It is allowed sending to himself
-        System.out.println("NODE " + this.getSelfId() + " SENT  " + msg.toString());
+        System.out.println("NODE " + this.getSelfId() + " SENT TO " + dest.path() + " " + msg.toString());
         dest.tell(new Message(this.selfRef, msg));
     }
 
@@ -100,21 +100,18 @@ public class MemberManager {
     }
 
     public void sendTo2n(Serializable msg) {
-        Integer key = memberList.getFloorKey(this.selfId);
-        assert key != null;
-
-        List<ActorRef<Message>> actors = memberList.getInterval(key, Config.N, Config.N);
+        List<ActorRef<Message>> actors = memberList.getInterval(getSelfId(), Config.N, Config.N);
         sendTo(actors.stream(), msg);
     }
 
     // DATA RESPONSABILITY
 
     private List<ActorRef<Message>> getResponsibleForData(int key) {
-        Integer firstResponsible = memberList.getFloorKey(key);
+        Integer firstResponsible = memberList.getCeilKey(key);
         assert firstResponsible != null;
-
-        return memberList.getInterval(firstResponsible, 0, Config.N);
-
+        var res = memberList.getInterval(firstResponsible, 0, Config.N - 1);
+        assert res.size() >= Config.N : "Not big enough responsible to send";
+        return res;
     }
 
     /// Used when living find all responsible if there weren't himself

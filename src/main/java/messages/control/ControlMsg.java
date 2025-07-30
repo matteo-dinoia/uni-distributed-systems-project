@@ -5,7 +5,7 @@ import node.NodeState;
 import java.io.Serializable;
 
 public class ControlMsg {
-    public record LeaveAck() implements Serializable {
+    public record LeaveAck(boolean left) implements Serializable {
     }
 
     public record RecoverAck(boolean recovered) implements Serializable {
@@ -14,7 +14,7 @@ public class ControlMsg {
     public record CrashAck() implements Serializable {
     }
 
-    public record JoinAck() implements Serializable {
+    public record JoinAck(boolean joined) implements Serializable {
     }
 
     public record WriteFullyCompleted() implements Serializable {
