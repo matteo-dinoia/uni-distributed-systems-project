@@ -14,8 +14,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-
+/**
+ * Implements node join in two phases:
+ * 1) BOOTSTRAP: ask a peer for the current member list
+ * 2) RESPONSIBILITIES: request data for keys this node will now serve
+ */
 public class Joining extends AbstractState {
+    private enum JoinPhase {BOOTSTRAP, RESPONSIBILITIES}
+
+    private JoinPhase phase;
+
     // key: (data, how many replicas confirmed it)
     private final HashMap<Integer, Pair<DataElement, Integer>> receivedData = new HashMap<>();
     private final Set<ActorRef<Message>> responded = new HashSet<>();
@@ -24,16 +32,40 @@ public class Joining extends AbstractState {
     private Integer closestHigherResponded = null;
     private Integer closestLowerResponded = null;
 
-
-    public Joining(Node node, ActorRef<Message> bootstrap) {
+    /**
+     * @param bootstrapPeer a live node to bootstrap membership from
+     */
+    public Joining(Node node, ActorRef<Message> bootstrapPeer) {
         super(node);
         this.reqId = node.getFreshRequestId();
-        sendInitialMsg();
+        this.phase = JoinPhase.BOOTSTRAP;
+        System.out.println("riga 43");
+        members.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
+        System.out.println("riga 45");
+        members.scheduleSendTimeoutToMyself(reqId);
     }
 
     @Override
     public NodeState getNodeRepresentation() {
         return NodeState.JOINING;
+    }
+
+    @Override
+    protected AbstractState handleBootstrapResponse(NodeMsg.BootstrapResponse msg) {
+        if (msg.requestId() != reqId || phase != JoinPhase.BOOTSTRAP)
+            return ignore();
+
+        System.out.println("BOOTSTRAP RESPONSE in node " + members.getSelfId() + ": " + msg.updatedMembers());
+
+        members.setMemberList(msg.updatedMembers());
+
+        members.addMember(members.getSelfId(), members.getSelfRef());
+
+        System.out.println("AFTER setMemberList: " + members.getMemberList().keySet());
+
+        phase = JoinPhase.RESPONSIBILITIES;
+        sendInitialMsg();
+        return keepSameState();
     }
 
     private void sendInitialMsg() {
@@ -43,21 +75,21 @@ public class Joining extends AbstractState {
 
     @Override
     protected AbstractState handleResponsabilityResponse(NodeMsg.ResponsabilityResponse msg) {
-        if (msg.requestId() != reqId)
+        if (msg.requestId() != reqId || phase != JoinPhase.RESPONSIBILITIES)
             return ignore();
 
         boolean enough_responded = addResponded(msg.senderId());
         boolean enough_quorum = addData(msg.data());
 
         if (enough_responded && enough_quorum) {
-            // save into storage
-            for (var entry : receivedData.entrySet())
+
+            for (var entry : receivedData.entrySet()) {
                 storage.put(entry.getKey(), entry.getValue().getLeft());
+            }
 
             members.sendToAll(new NotifyMsg.NodeJoined(members.getSelfId(), members.getSelfRef()));
             return new Normal(super.node);
         }
-
         return keepSameState();
     }
 
