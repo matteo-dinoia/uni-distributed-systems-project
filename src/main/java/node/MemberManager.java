@@ -72,7 +72,7 @@ public class MemberManager {
     public void sendTo(ActorRef<Message> dest, Serializable msg) {
         // simulate network delays using sleep
         try {
-            Thread.sleep(rnd.nextInt(10));
+            Thread.sleep(rnd.nextLong(Config.MAX_DELAY.toMillis()));
         } catch (InterruptedException _) {
             System.err.println("Cannot sleep for some reason");
         }
