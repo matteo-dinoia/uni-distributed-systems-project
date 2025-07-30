@@ -2,6 +2,7 @@ package states;
 
 import akka.actor.typed.ActorRef;
 import messages.Message;
+import messages.control.ControlMsg;
 import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
 import node.DataElement;
@@ -20,6 +21,8 @@ import java.util.Set;
  * 2) RESPONSIBILITIES: request data for keys this node will now serve
  */
 public class Joining extends AbstractState {
+    private final ActorRef<Message> mainActorRef;
+
     private enum JoinPhase {BOOTSTRAP, RESPONSIBILITIES}
 
     private JoinPhase phase;
@@ -35,13 +38,12 @@ public class Joining extends AbstractState {
     /**
      * @param bootstrapPeer a live node to bootstrap membership from
      */
-    public Joining(Node node, ActorRef<Message> bootstrapPeer) {
+    public Joining(Node node, ActorRef<Message> bootstrapPeer, ActorRef<Message> mainActorRef) {
         super(node);
         this.reqId = node.getFreshRequestId();
         this.phase = JoinPhase.BOOTSTRAP;
-        System.out.println("riga 43");
+        this.mainActorRef = mainActorRef;
         members.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
-        System.out.println("riga 45");
         members.scheduleSendTimeoutToMyself(reqId);
     }
 
@@ -55,22 +57,11 @@ public class Joining extends AbstractState {
         if (msg.requestId() != reqId || phase != JoinPhase.BOOTSTRAP)
             return ignore();
 
-        System.out.println("BOOTSTRAP RESPONSE in node " + members.getSelfId() + ": " + msg.updatedMembers());
-
         members.setMemberList(msg.updatedMembers());
-
-        members.addMember(members.getSelfId(), members.getSelfRef());
-
-        System.out.println("AFTER setMemberList: " + members.getMemberList().keySet());
-
         phase = JoinPhase.RESPONSIBILITIES;
-        sendInitialMsg();
-        return keepSameState();
-    }
 
-    private void sendInitialMsg() {
         members.sendTo2n(new NodeMsg.ResponsabilityRequest(reqId, members.getSelfRef()));
-        members.scheduleSendTimeoutToMyself(reqId);
+        return keepSameState();
     }
 
     @Override
@@ -81,15 +72,8 @@ public class Joining extends AbstractState {
         boolean enough_responded = addResponded(msg.senderId());
         boolean enough_quorum = addData(msg.data());
 
-        if (enough_responded && enough_quorum) {
-
-            for (var entry : receivedData.entrySet()) {
-                storage.put(entry.getKey(), entry.getValue().getLeft());
-            }
-
-            members.sendToAll(new NotifyMsg.NodeJoined(members.getSelfId(), members.getSelfRef()));
-            return new Normal(super.node);
-        }
+        if (enough_responded && enough_quorum)
+            return completeJoin();
         return keepSameState();
     }
 
@@ -98,10 +82,10 @@ public class Joining extends AbstractState {
         if (msg.operationId() != reqId)
             return ignore();
 
+        members.sendTo(mainActorRef, new ControlMsg.JoinAck(false));
         return new Initial(super.node);
     }
 
-    // TODO CHECK order of element that is counted correctly
     private boolean addResponded(int senderId) {
         if (responded.contains(sender()))
             return false;
@@ -120,9 +104,8 @@ public class Joining extends AbstractState {
 
             Pair<DataElement, Integer> pair = receivedData.computeIfAbsent(key, _ -> new Pair<>(new_value, 0));
             pair.setRight(pair.getRight() + 1);
-            if (pair.getLeft().getVersion() < new_value.getVersion()) {
+            if (pair.getLeft().getVersion() < new_value.getVersion())
                 pair.setLeft(new_value);
-            }
         }
 
         return hasSufficientReplicas();
@@ -130,10 +113,18 @@ public class Joining extends AbstractState {
 
     private boolean hasSufficientReplicas() {
         for (Pair<DataElement, Integer> pair : receivedData.values()) {
-            if (pair.getRight() < Config.R) {
+            if (pair.getRight() < Config.R)
                 return false;
-            }
         }
         return true;
+    }
+
+    private AbstractState completeJoin() {
+        for (var entry : receivedData.entrySet())
+            storage.put(entry.getKey(), entry.getValue().getLeft());
+
+        members.sendToAll(new NotifyMsg.NodeJoined(members.getSelfId(), members.getSelfRef()));
+        members.sendTo(mainActorRef, new ControlMsg.JoinAck(true));
+        return new Normal(super.node);
     }
 }
