@@ -27,11 +27,14 @@ public class MemberManager {
         this.selfId = selfId;
         this.selfRef = context.getSelf();
         this.memberList = new Ring<>();
+        this.memberList.put(selfId, this.selfRef);
         this.context = context;
     }
 
     public void setMemberList(HashMap<Integer, ActorRef<Message>> members) {
         this.memberList.replaceAll(members);
+        if (!members.containsKey(this.selfId))
+            this.memberList.put(this.selfId, this.selfRef);
     }
 
     public void addMember(int key, ActorRef<Message> member) {
