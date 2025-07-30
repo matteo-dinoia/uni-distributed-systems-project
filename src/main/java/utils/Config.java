@@ -6,5 +6,6 @@ public class Config {
     public static final int N = 4;
     public static final int W = 3;
     public static final int R = 2;
-    public static final Duration TIMEOUT = Duration.ofSeconds(5);
+    public static final Duration TIMEOUT = Duration.ofSeconds(2);
+    public static final Duration TIMOUT_PROBE = Duration.ofSeconds(4);
 }

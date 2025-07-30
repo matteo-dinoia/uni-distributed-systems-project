@@ -14,7 +14,7 @@ import java.util.Set;
 
 import static java.util.Map.entry;
 
-public class Testing {
+public class TestGenerals {
     @ClassRule
     public static final TestKitJunitResource testKit = new TestKitJunitResource();
 
@@ -78,7 +78,7 @@ public class Testing {
             Client client = test.getClient();
             int succedeed = test.clientOperation(Map.ofEntries(entry(client, new ClientOperation.Read(3, 5))));
             // TODO Fix
-            assert succedeed == 0;
+            assert succedeed == 1;
         }
     }
 

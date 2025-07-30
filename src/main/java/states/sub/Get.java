@@ -47,7 +47,6 @@ public class Get extends AbstractState {
 
     @Override
     protected AbstractState handleReadResponse(NodeDataMsg.ReadResponse msg) {
-        System.out.println("LOL HEER");
         if (msg.requestId() != requestId) return ignore();
 
         respondedPositively.add(sender());
@@ -81,7 +80,6 @@ public class Get extends AbstractState {
     }
 
     private boolean checkFinished() {
-        System.out.println("COmpleted " + respondedPositively.size());
         if (respondedPositively.size() < Config.R)
             return false;
 

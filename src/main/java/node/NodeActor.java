@@ -40,10 +40,7 @@ public class NodeActor extends AbstractBehavior<Message> {
             if (!curr.isValidChange(next))
                 System.out.println("INVALID STATE TRANSACTION in node " + node.members().getSelfId() +
                         " from " + curr + " to " + next);
-            else if (curr == next)
-                System.out.println("STATE DIDN'T CHANGE in node " + node.members().getSelfId() +
-                        " and is " + curr);
-            else
+            else if (curr != next)
                 System.out.println("STATE CHANGED in node " + node.members().getSelfId() +
                         " from " + curr + " to " + next);
             this.state = nextState;

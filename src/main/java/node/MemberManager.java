@@ -27,11 +27,14 @@ public class MemberManager {
         this.selfId = selfId;
         this.selfRef = context.getSelf();
         this.memberList = new Ring<>();
+        this.memberList.put(selfId, this.selfRef);
         this.context = context;
     }
 
     public void setMemberList(HashMap<Integer, ActorRef<Message>> members) {
         this.memberList.replaceAll(members);
+        if (!members.containsKey(this.selfId))
+            this.memberList.put(this.selfId, this.selfRef);
     }
 
     public void addMember(int key, ActorRef<Message> member) {
@@ -73,12 +76,12 @@ public class MemberManager {
         // simulate network delays using sleep
         try {
             Thread.sleep(rnd.nextInt(10));
-        } catch (InterruptedException e) {
+        } catch (InterruptedException _) {
             System.err.println("Cannot sleep for some reason");
         }
 
         // It is allowed sending to himself
-        System.out.println("NODE " + this.getSelfId() + " SENT TO " + dest.path() + " " + msg.toString());
+        System.out.println("<== NODE " + this.getSelfId() + " SENT TO '" + dest.path().name() + "' " + msg.toString());
         dest.tell(new Message(this.selfRef, msg));
     }
 

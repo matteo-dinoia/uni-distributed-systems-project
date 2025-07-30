@@ -18,7 +18,6 @@ import java.util.Set;
 public class Joining extends AbstractState {
     // key: (data, how many replicas confirmed it)
     private final HashMap<Integer, Pair<DataElement, Integer>> receivedData = new HashMap<>();
-    // TODO possible to remove
     private final Set<ActorRef<Message>> responded = new HashSet<>();
     private final int reqId;
 
@@ -26,7 +25,7 @@ public class Joining extends AbstractState {
     private Integer closestLowerResponded = null;
 
 
-    public Joining(Node node) {
+    public Joining(Node node, ActorRef<Message> bootstrap) {
         super(node);
         this.reqId = node.getFreshRequestId();
         sendInitialMsg();
@@ -85,6 +84,9 @@ public class Joining extends AbstractState {
 
     // TODO CHECK order of element that is counted correctly
     private boolean addResponded(int senderId) {
+        if (responded.contains(sender()))
+            return false;
+
         responded.add(sender());
 
         closestLowerResponded = members.closerLower(senderId, closestLowerResponded);
@@ -97,7 +99,7 @@ public class Joining extends AbstractState {
             int key = entry.getKey();
             DataElement new_value = entry.getValue();
 
-            Pair<DataElement, Integer> pair = receivedData.computeIfAbsent(key, ignored -> new Pair<>(new_value, 0));
+            Pair<DataElement, Integer> pair = receivedData.computeIfAbsent(key, _ -> new Pair<>(new_value, 0));
             pair.setRight(pair.getRight() + 1);
             if (pair.getLeft().getVersion() < new_value.getVersion()) {
                 pair.setLeft(new_value);

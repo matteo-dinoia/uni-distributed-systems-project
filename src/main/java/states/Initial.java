@@ -36,6 +36,6 @@ public class Initial extends AbstractState {
 
     @Override
     protected AbstractState handleJoin(StatusMsg.Join msg) {
-        return new Joining(super.node);
+        return new Joining(super.node, msg.bootstrappingPeer());
     }
 }

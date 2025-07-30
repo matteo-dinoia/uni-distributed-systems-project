@@ -20,7 +20,7 @@ public class Client {
     }
 
     public void setKeyLatestVersion(int key, int newVersion) {
-        Integer old = latestVersionSeen.computeIfAbsent(key, ignored -> newVersion);
+        Integer old = latestVersionSeen.computeIfAbsent(key, _ -> newVersion);
         if (newVersion < old)
             throw new RuntimeException("Client consistency is broken");
 
