@@ -95,6 +95,7 @@ public abstract class AbstractState {
             // ───────────── Leave ─────────────
             case NodeMsg.PassResponsabilityRequest msg -> handlePassResponsabilityRequest(msg);
             case NodeMsg.PassResponsabilityResponse msg -> handlePassResponsabilityResponse(msg);
+            case NodeMsg.RollbackPassResponsability msg -> handleRollbackPassResponsability(msg);
             // ───────────── Recover ─────────────
             case StatusMsg.Recover msg -> handleRecover(msg);
             // ───────────── Timeout ─────────────
@@ -137,6 +138,10 @@ public abstract class AbstractState {
 
 
     // MESSAGE HANDLERS ---------------------------------------------------------------
+    protected AbstractState handleRollbackPassResponsability(NodeMsg.RollbackPassResponsability msg) {
+        return default_option(msg);
+    }
+
     protected AbstractState handleResponsabilityRequest(NodeMsg.ResponsabilityRequest msg) {
         return default_option(msg);
     }

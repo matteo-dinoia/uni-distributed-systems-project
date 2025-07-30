@@ -8,10 +8,7 @@ import utils.Config;
 import utils.Ring;
 
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -122,7 +119,7 @@ public class MemberManager {
         Integer firstResponsible = memberList.getFloorKey(key);
         assert firstResponsible != null;
 
-        List<ActorRef<Message>> list = memberList.getInterval(firstResponsible, 0, Config.N + 1);
+        ArrayList<ActorRef<Message>> list = new ArrayList<>(memberList.getInterval(firstResponsible, 0, Config.N + 1));
         list.remove(getSelfId());
 
         if (list.size() < Config.N)
@@ -166,4 +163,7 @@ public class MemberManager {
     }
 
 
+    public int size() {
+        return memberList.size();
+    }
 }
