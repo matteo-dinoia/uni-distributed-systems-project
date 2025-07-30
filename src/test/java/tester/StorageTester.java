@@ -7,9 +7,7 @@ import utils.Pair;
 import java.util.HashMap;
 import java.util.Map;
 
-public class StorageTester {
-    public Map<Integer, Map<Integer, DataElement>> nodesData;
-
+public record StorageTester(Map<Integer, Map<Integer, DataElement>> nodesData) {
     public StorageTester(Map<Integer, Map<Integer, DataElement>> nodesData) {
         this.nodesData = nodesData;
         testConsistency();

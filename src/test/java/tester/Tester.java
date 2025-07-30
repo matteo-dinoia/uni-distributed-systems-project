@@ -100,7 +100,7 @@ public class Tester implements AutoCloseable {
         for (ActorRef<Message> node : group.getHashMap().values())
             send(probe, node, new ControlMsg.DebugCurrentStorageRequest());
 
-        for (ActorRef<Message> node : group.getHashMap().values()) {
+        for (var _ : group.getHashMap().keySet()) {
             Serializable content = probe.receiveMessage(TIMEOUT_PROBE).content();
             if (!(content instanceof ControlMsg.DebugCurrentStorageResponse(int id, Map<Integer, DataElement> data)))
                 throw new RuntimeException("Wrong message received");
@@ -118,7 +118,7 @@ public class Tester implements AutoCloseable {
             Client client = operation.getKey();
             ClientOperation op = operation.getValue();
 
-            if (op.operation() == ClientOperation.READ) {
+            if (op.isRead()) {
                 Integer lastVersion = client.getKeyLatestVersion(op.key());
                 send(client.getReceiver(), getNode(op.nodeId()), new DataMsg.Get(op.key(), lastVersion));
             } else {
@@ -131,7 +131,7 @@ public class Tester implements AutoCloseable {
         int successful = 0;
         for (var operation : operations.entrySet()) {
             Client client = operation.getKey();
-            boolean isRead = operation.getValue().operation() == ClientOperation.READ;
+            boolean isRead = operation.getValue().isRead();
             int nodeId = operation.getValue().nodeId();
 
             Serializable content = client.getReceiver().receiveMessage(TIMEOUT_PROBE).content();

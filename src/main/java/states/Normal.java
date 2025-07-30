@@ -173,9 +173,10 @@ public class Normal extends AbstractState {
 
         if (!elem.isReadLocked())
             members.sendTo(sender(), new NodeDataMsg.ReadResponse(msg.requestId(), elem));
+        else if (!members.isResponsible(members.getSelfRef(), msg.key()))
+            return panic();
         else
             members.sendTo(sender(), new NodeDataMsg.ReadImpossibleForLock(msg.requestId()));
-        // TODO check for not under my control
         return keepSameState();
     }
 
