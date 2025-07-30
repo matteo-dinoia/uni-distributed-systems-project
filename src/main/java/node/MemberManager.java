@@ -73,12 +73,12 @@ public class MemberManager {
         // simulate network delays using sleep
         try {
             Thread.sleep(rnd.nextInt(10));
-        } catch (InterruptedException e) {
+        } catch (InterruptedException _) {
             System.err.println("Cannot sleep for some reason");
         }
 
         // It is allowed sending to himself
-        System.out.println("NODE " + this.getSelfId() + " SENT TO " + dest.path() + " " + msg.toString());
+        System.out.println("<== NODE " + this.getSelfId() + " SENT TO '" + dest.path().name() + "' " + msg.toString());
         dest.tell(new Message(this.selfRef, msg));
     }
 

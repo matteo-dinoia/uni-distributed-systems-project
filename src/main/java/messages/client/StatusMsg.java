@@ -13,7 +13,7 @@ public abstract class StatusMsg {
     public record Crash() implements Serializable {
     }
 
-    public record Join(ActorRef<Message> bootstrappingPear) implements Serializable {
+    public record Join(ActorRef<Message> bootstrappingPeer) implements Serializable {
     }
 
     public record Recover(ActorRef<Message> bootstrappingPear) implements Serializable {

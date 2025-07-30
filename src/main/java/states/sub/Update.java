@@ -4,6 +4,7 @@ import akka.actor.typed.ActorRef;
 import messages.Message;
 import messages.client.DataMsg;
 import messages.client.ResponseMsgs;
+import messages.control.ControlMsg;
 import messages.node_operation.NodeDataMsg;
 import messages.node_operation.NodeMsg;
 import node.Node;
@@ -152,7 +153,8 @@ public class Update extends AbstractState {
 
         writeAcked.add(sender());
         if (writeAcked.size() >= writeLockGranted.size()) {
-            members.sendTo(writeLockGranted.stream(), new NodeDataMsg.WriteLockRelease(requestId, key));
+            // That is only needed for the tester
+            members.sendTo(client, new ControlMsg.WriteFullyCompleted());
             return new Normal(super.node);
         }
 

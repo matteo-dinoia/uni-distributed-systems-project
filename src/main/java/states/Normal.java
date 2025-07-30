@@ -94,9 +94,8 @@ public class Normal extends AbstractState {
 
     public AbstractState handleSubstates(Serializable msg, int requestId) {
         AbstractState sub = substates.get(requestId);
-        System.out.println(sub + " " + requestId + " " + substates);
         if (sub == null)
-            return log_unhandled();
+            return log("[WARN] Substate request was ignored");
 
         var nextSubstate = sub.handle(sender(), msg);
         if (nextSubstate == null)
@@ -137,6 +136,17 @@ public class Normal extends AbstractState {
     }
 
     @Override
+    protected AbstractState handleReadLockRequest(NodeDataMsg.ReadLockRequest msg) {
+        DataElement elem = storage.get(msg.key());
+        if (elem == null || !elem.isLockedForWrite())
+            return panic();
+
+        elem.setReadLocked(true);
+        members.sendTo(sender(), new NodeDataMsg.ReadLockAcked(msg.requestId()));
+        return keepSameState();
+    }
+
+    @Override
     protected AbstractState handleWriteRequest(NodeDataMsg.WriteRequest msg) {
         DataElement elem = storage.get(msg.key());
         if (elem == null)
@@ -144,6 +154,7 @@ public class Normal extends AbstractState {
 
         elem.updateValue(msg.value(), msg.version());
         elem.setLockedForWrite(false);
+        elem.setReadLocked(false);
 
         members.sendTo(sender(), new NodeDataMsg.WriteAck(msg.requestId()));
         return keepSameState();
@@ -153,8 +164,10 @@ public class Normal extends AbstractState {
     protected AbstractState handleReadRequest(NodeDataMsg.ReadRequest msg) {
         // TODO check for null (control) and not under my control
         DataElement elem = storage.get(msg.key());
+        if (elem == null)
+            elem = new DataElement();
 
-        if (elem == null || !elem.isReadLocked()) {
+        if (!elem.isReadLocked()) {
             members.sendTo(sender(), new NodeDataMsg.ReadResponse(msg.requestId(), elem));
         } else {
             members.sendTo(sender(), new NodeDataMsg.ReadImpossibleForLock(msg.requestId()));

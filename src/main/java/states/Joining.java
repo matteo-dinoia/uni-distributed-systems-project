@@ -26,7 +26,7 @@ public class Joining extends AbstractState {
     private Integer closestLowerResponded = null;
 
 
-    public Joining(Node node) {
+    public Joining(Node node, ActorRef<Message> bootstrap) {
         super(node);
         this.reqId = node.getFreshRequestId();
         sendInitialMsg();

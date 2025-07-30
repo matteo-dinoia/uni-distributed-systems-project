@@ -24,7 +24,7 @@ import java.util.Set;
 public class Tester implements AutoCloseable {
     private final ActorTestKit testKit;
     private final Ring<ActorRef<Message>> group = new Ring<>();
-    private static final Duration TIMEOUT_PROBE = Duration.ofSeconds(5);
+    private static final Duration TIMEOUT_PROBE = Config.TIMOUT_PROBE;
 
 
     /// GENERAL UTILITIES
@@ -98,8 +98,6 @@ public class Tester implements AutoCloseable {
     /// GET+UPDATE: send ReadRequest and Update, wait for ReadResponse and WriteFullyCompleted
     /// Return number of successful operation
     public int clientOperation(Map<Client, ClientOperation> operations) {
-        TestProbe<Message> probe = getProbe();
-
         for (var operation : operations.entrySet()) {
             Client client = operation.getKey();
             ClientOperation op = operation.getValue();
@@ -122,12 +120,6 @@ public class Tester implements AutoCloseable {
         for (var operation : operations.entrySet()) {
             Client client = operation.getKey();
             boolean isRead = (operation.getValue() instanceof ClientOperation.Read _);
-
-            int key = switch (operation.getValue()) {
-                case ClientOperation.Read(int k, int _) -> k;
-                case ClientOperation.Write(int k, int _) -> k;
-                default -> throw new IllegalStateException("Someone made a new subclass and didn't add it here");
-            };
 
             int nodeId = switch (operation.getValue()) {
                 case ClientOperation.Read(int _, int node) -> node;
