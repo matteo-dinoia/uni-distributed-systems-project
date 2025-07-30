@@ -46,7 +46,7 @@ public abstract class AbstractState {
     }
 
     protected AbstractState log(String logValue) {
-        System.out.println(logValue);
+        System.err.println(logValue);
         return this;
     }
 

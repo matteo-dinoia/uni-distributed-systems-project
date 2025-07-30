@@ -84,7 +84,7 @@ public class MemberManager {
 
     public void scheduleSendTimeoutToMyself(int operationId) {
         var timeoutMsg = new Message(this.selfRef, new NodeMsg.Timeout(operationId));
-        System.out.println("SCHEDULED TIMEOUT on node " + this.getSelfId());
+        System.out.println("<~~ NODE " + this.getSelfId() + " scheduled a timeout for operation " + operationId);
 
         context.getSystem().scheduler().scheduleOnce(
                 Config.TIMEOUT,

@@ -78,6 +78,7 @@ public class TestGenerals {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
             assert test.write(null, 2, 3);
             assert test.leave(3);
+            var _ = test.getNodeStorages();
         }
     }
 
