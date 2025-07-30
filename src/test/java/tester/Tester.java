@@ -73,12 +73,11 @@ public class Tester implements AutoCloseable {
         recipient.tell(crashMsg);
     }
 
-
-    /// OPERATION UTILITIES:
-
     public Client getClient() {
         return new Client(getProbe());
     }
+
+    // GET DEBUG INFO
 
     public NodeState getNodeState(int nodeId) {
         ActorRef<Message> node = getNode(nodeId);
@@ -110,6 +109,8 @@ public class Tester implements AutoCloseable {
 
         return new StorageTester(res);
     }
+
+    // OPERATION TESTER
 
     /// GET+UPDATE: send ReadRequest and Update, wait for ReadResponse and WriteFullyCompleted
     /// Return number of successful operation
