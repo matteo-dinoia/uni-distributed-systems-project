@@ -66,7 +66,6 @@ public class DataElement implements Serializable {
         return "DataElement{" +
                 "value='" + value + '\'' +
                 ", version=" + version +
-                ", versionReadLocked=" + versionReadLocked +
                 ", readLocked=" + readLocked +
                 ", writeLocked=" + writeLocked +
                 '}';

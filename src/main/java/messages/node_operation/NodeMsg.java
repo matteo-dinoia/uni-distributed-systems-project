@@ -6,7 +6,7 @@ import node.DataElement;
 
 import java.io.Serializable;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Set;
 
 public class NodeMsg {
     // BOOTSTRAP
@@ -26,12 +26,10 @@ public class NodeMsg {
                                          HashMap<Integer, DataElement> data) implements Serializable {
     }
 
-    // TODO Use hashmap of key, data
     public record PassResponsabilityRequest(int requestId, HashMap<Integer, DataElement> responsabilities) implements Serializable {
     }
 
-    // TODO FIX never used
-    public record PassResponsabilityResponse(List<Integer> keys, int requestId) implements Serializable {
+    public record PassResponsabilityResponse(int requestId, Set<Integer> keys) implements Serializable {
     }
 
     public record RollbackPassResponsability(int requestId) implements Serializable {

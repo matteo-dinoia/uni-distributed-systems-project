@@ -15,25 +15,6 @@ import utils.Config;
 
 import java.util.HashSet;
 
-//    a tutti gli mandi voglio scrivere, W rispondono, a quei W rispondi "io ho intenzione di scrivere",
-//    bloccatevi in lettura e poi scrivo il valore, una volta scritto libero i lock in lettura e i lock in scrittura
-//    e fare i controlli che siano validi. I lock sono sequenziali (prima lock lettura e poi write),
-//    fare in modo che il DataElement faccia qualche tipo di controllo.
-//    La read puo fallire quando chiedi a un nodo e dentro la classe get() bisogna anche gestire quel caso.
-
-// TODO: use phase = 1 as phase indicator
-// if in wrong phase either ignore or panic
-// need three phases: 1 as normal
-// 2 very similar to 3 but ask to lock in reading
-// so no partial read (tecnically not a problem but ok)
-// 3 as the current second phase
-
-// TODO in NORMAL if is read locked when trying to read then
-// add in the dataElem that a client is waiting for the new value
-// send only when the readLock is released
-// TODO ALTERNATIVE immediately return coudn't read and handle readFailure in
-// get similarly to what we do in update
-
 public class Update extends AbstractState {
     // Phase indicators
     private enum Phase {WRITE_LOCK, READ_LOCK, WRITE_AND_RELEASE}

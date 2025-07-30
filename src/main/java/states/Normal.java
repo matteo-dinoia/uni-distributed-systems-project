@@ -13,6 +13,7 @@ import node.Node;
 import node.NodeState;
 import states.sub.Get;
 import states.sub.Update;
+import utils.Config;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -68,12 +69,14 @@ public class Normal extends AbstractState {
     @Override
     protected AbstractState handleNodeLeft(NotifyMsg.NodeLeft msg) {
         members.removeMember(msg.actorId());
+        assert members.size() >= Config.N : "Not enough node left";
         return keepSameState();
     }
 
     @Override
     protected AbstractState handleNodeJoined(NotifyMsg.NodeJoined msg) {
         members.addMember(msg.actorId(), msg.actorRef());
+        storage.removeNotUnderMyControl(members);
         return keepSameState();
     }
 
@@ -110,7 +113,6 @@ public class Normal extends AbstractState {
     protected AbstractState handleWriteLockRequest(NodeDataMsg.WriteLockRequest msg) {
         DataElement elem = storage.get(msg.key());
         if (elem == null) {
-            // TODO MAYBE tecnically is a memory leak
             elem = new DataElement();
             storage.put(msg.key(), elem);
         }
@@ -130,6 +132,8 @@ public class Normal extends AbstractState {
         DataElement elem = storage.get(msg.key());
         if (elem == null)
             return panic();
+        else if (elem.getVersion() < 0)
+            storage.removeIfRepresentNotExistent(msg.key());
 
         elem.setWriteLocked(false);
         return keepSameState();
@@ -162,16 +166,23 @@ public class Normal extends AbstractState {
 
     @Override
     protected AbstractState handleReadRequest(NodeDataMsg.ReadRequest msg) {
-        // TODO check for null (control) and not under my control
+
         DataElement elem = storage.get(msg.key());
         if (elem == null)
             elem = new DataElement();
 
-        if (!elem.isReadLocked()) {
+        if (!elem.isReadLocked())
             members.sendTo(sender(), new NodeDataMsg.ReadResponse(msg.requestId(), elem));
-        } else {
+        else
             members.sendTo(sender(), new NodeDataMsg.ReadImpossibleForLock(msg.requestId()));
-        }
+        // TODO check for not under my control
+        return keepSameState();
+    }
+
+    @Override
+    protected AbstractState handleBootstrapRequest(NodeMsg.BootstrapRequest req) {
+        HashMap<Integer, ActorRef<Message>> currentMembers = members.getMemberList();
+        members.sendTo(sender(), new NodeMsg.BootstrapResponse(req.requestId(), currentMembers));
         return keepSameState();
     }
 
@@ -190,15 +201,16 @@ public class Normal extends AbstractState {
 
     @Override
     protected AbstractState handlePassResponsabilityRequest(NodeMsg.PassResponsabilityRequest msg) {
-        // TODO maybe in normal, missing other surely...
-        throw new UnsupportedOperationException();
+        storage.putAll(msg.responsabilities());
+        members.sendTo(sender(), new NodeMsg.PassResponsabilityResponse(msg.requestId(), msg.responsabilities().keySet()));
+        return keepSameState();
     }
 
     @Override
-    protected AbstractState handleBootstrapRequest(NodeMsg.BootstrapRequest req) {
-        HashMap<Integer, ActorRef<Message>> currentMembers = members.getMemberList();
-        members.sendTo(sender(), new NodeMsg.BootstrapResponse(req.requestId(), currentMembers));
+    protected AbstractState handleRollbackPassResponsability(NodeMsg.RollbackPassResponsability msg) {
+        storage.removeNotUnderMyControl(members);
         return keepSameState();
     }
+
 
 }

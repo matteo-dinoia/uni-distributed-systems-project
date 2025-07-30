@@ -32,4 +32,28 @@ public class DataStorage {
     public Set<Integer> getAllKeys() {
         return data.keySet();
     }
+
+    public void removeIfRepresentNotExistent(int key) {
+        DataElement elem = get(key);
+        if (elem != null && elem.getVersion() < 0)
+            data.remove(key);
+    }
+
+    public void putAll(HashMap<Integer, DataElement> toInsert) {
+        for (var elem : toInsert.entrySet()) {
+            assert elem.getKey() != null : "Inserting a null key";
+            put(elem.getKey(), elem.getValue());
+        }
+
+    }
+
+    public void removeNotUnderMyControl(MemberManager members) {
+        var keySet = this.data.keySet();
+        for (Integer key : keySet) {
+            assert key != null : "Found a null key";
+            if (!members.isResponsible(members.getSelfRef(), key))
+                data.remove(key);
+        }
+
+    }
 }
