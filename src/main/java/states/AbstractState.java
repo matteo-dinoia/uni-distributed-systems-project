@@ -34,6 +34,7 @@ public abstract class AbstractState {
         return log_unhandled(msg);
     }
 
+    @SuppressWarnings("SameReturnValue")
     protected AbstractState panic() {
         System.out.println("[FATAL] Something catastrofic happened");
         return null;

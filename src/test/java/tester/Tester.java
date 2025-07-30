@@ -71,11 +71,6 @@ public class Tester implements AutoCloseable {
         recipient.tell(crashMsg);
     }
 
-    private void assertOrThrows(boolean condition, String error) {
-        if (!condition)
-            throw new RuntimeException(error);
-    }
-
 
     /// OPERATION UTILITIES:
 
@@ -131,27 +126,27 @@ public class Tester implements AutoCloseable {
 
             switch (content) {
                 case ResponseMsgs.ReadSucceeded msg -> {
-                    assertOrThrows(isRead, "Unexpected Message received");
+                    assert isRead : "Unexpected Message received";
                     client.setKeyLatestVersion(msg.key(), msg.version());
                     successful++;
                 }
                 case ResponseMsgs.ReadResultFailed _ -> {
-                    assertOrThrows(isRead, "Unexpected Message received");
+                    assert isRead : "Unexpected Message received";
                 }
                 case ResponseMsgs.ReadResultInexistentValue _ -> {
-                    assertOrThrows(isRead, "Unexpected Message received");
+                    assert isRead : "Unexpected Message received";
                     successful++;
                 }
                 case ResponseMsgs.ReadTimeout _ -> {
-                    assertOrThrows(isRead, "Unexpected Message received");
+                    assert isRead : "Unexpected Message received";
                 }
                 case ResponseMsgs.WriteSucceeded msg -> {
-                    assertOrThrows(!isRead, "Unexpected Message received");
+                    assert !isRead : "Unexpected Message received";
                     client.setKeyLatestVersion(msg.key(), msg.newVersion());
                     successful++;
                 }
                 case ResponseMsgs.WriteTimeout _ -> {
-                    assertOrThrows(!isRead, "Unexpected Message received");
+                    assert !isRead : "Unexpected Message received";
                 }
                 default -> throw new RuntimeException("Unexpected Message received");
             }

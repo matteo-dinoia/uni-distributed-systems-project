@@ -14,7 +14,7 @@ import java.util.Set;
 
 import static java.util.Map.entry;
 
-public class Testing {
+public class TestGenerals {
     @ClassRule
     public static final TestKitJunitResource testKit = new TestKitJunitResource();
 

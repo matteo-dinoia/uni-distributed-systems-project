@@ -18,7 +18,6 @@ import java.util.Set;
 public class Joining extends AbstractState {
     // key: (data, how many replicas confirmed it)
     private final HashMap<Integer, Pair<DataElement, Integer>> receivedData = new HashMap<>();
-    // TODO possible to remove
     private final Set<ActorRef<Message>> responded = new HashSet<>();
     private final int reqId;
 
@@ -85,6 +84,9 @@ public class Joining extends AbstractState {
 
     // TODO CHECK order of element that is counted correctly
     private boolean addResponded(int senderId) {
+        if (responded.contains(sender()))
+            return false;
+
         responded.add(sender());
 
         closestLowerResponded = members.closerLower(senderId, closestLowerResponded);

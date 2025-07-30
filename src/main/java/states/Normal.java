@@ -19,7 +19,7 @@ import java.util.HashMap;
 
 public class Normal extends AbstractState {
     // Map client to its own controller
-    public HashMap<Integer, AbstractState> substates;
+    public final HashMap<Integer, AbstractState> substates;
 
     public Normal(Node node) {
         super(node);
@@ -116,10 +116,10 @@ public class Normal extends AbstractState {
         }
 
 
-        if (elem.isLockedForWrite()) {
+        if (elem.isWriteLocked()) {
             members.sendTo(sender(), new NodeDataMsg.WriteLockDenied(msg.requestId()));
         } else {
-            elem.setLockedForWrite(true);
+            elem.setWriteLocked(true);
             members.sendTo(sender(), new NodeDataMsg.WriteLockGranted(msg.requestId(), elem.getVersion()));
         }
         return keepSameState();
@@ -131,14 +131,14 @@ public class Normal extends AbstractState {
         if (elem == null)
             return panic();
 
-        elem.setLockedForWrite(false);
+        elem.setWriteLocked(false);
         return keepSameState();
     }
 
     @Override
     protected AbstractState handleReadLockRequest(NodeDataMsg.ReadLockRequest msg) {
         DataElement elem = storage.get(msg.key());
-        if (elem == null || !elem.isLockedForWrite())
+        if (elem == null || !elem.isWriteLocked())
             return panic();
 
         elem.setReadLocked(true);
@@ -153,7 +153,7 @@ public class Normal extends AbstractState {
             return panic();
 
         elem.updateValue(msg.value(), msg.version());
-        elem.setLockedForWrite(false);
+        elem.setWriteLocked(false);
         elem.setReadLocked(false);
 
         members.sendTo(sender(), new NodeDataMsg.WriteAck(msg.requestId()));

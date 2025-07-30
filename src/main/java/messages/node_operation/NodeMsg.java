@@ -30,6 +30,7 @@ public class NodeMsg {
     public record PassResponsabilityRequest(int requestId, HashMap<Integer, DataElement> responsabilities) implements Serializable {
     }
 
+    // TODO FIX never used
     public record PassResponsabilityResponse(List<Integer> keys, int requestId) implements Serializable {
     }
 

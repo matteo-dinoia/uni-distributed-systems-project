@@ -171,7 +171,7 @@ public class Update extends AbstractState {
     }
 
     private AbstractState abortOperation() {
-        members.sendTo(client, new ResponseMsgs.ReadTimeout(key));
+        members.sendTo(client, new ResponseMsgs.WriteTimeout(key));
         members.sendTo(writeLockGranted.stream(), new NodeDataMsg.WriteLockRelease(requestId, key));
         return new Normal(super.node);
     }

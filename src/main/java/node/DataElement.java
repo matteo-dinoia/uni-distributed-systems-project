@@ -6,15 +6,13 @@ import java.util.Objects;
 public class DataElement implements Serializable {
     private String value;
     private int version;
-    private boolean versionReadLocked;
-    private boolean lockedForWrite;
+    private boolean writeLocked;
     private boolean readLocked;
 
     public DataElement() {
         this.value = null;
         this.version = -1;
-        this.versionReadLocked = false;
-        this.lockedForWrite = false;
+        this.writeLocked = false;
         this.readLocked = false;
     }
 
@@ -24,25 +22,15 @@ public class DataElement implements Serializable {
      * @throws IllegalStateException if a read or write lock is held
      */
     public String getValue() {
-        if (lockedForWrite) {
+        if (writeLocked)
             throw new IllegalStateException("Cannot read while write-lock is held");
-        }
-        if (readLocked) {
+        if (readLocked)
             throw new IllegalStateException("DataElement is read-locked");
-        }
         return value;
     }
 
     public int getVersion() {
         return version;
-    }
-
-    public boolean isVersionReadLocked() {
-        return versionReadLocked;
-    }
-
-    public void setVersionReadLocked(boolean locked) {
-        this.versionReadLocked = locked;
     }
 
     public boolean isReadLocked() {
@@ -53,12 +41,12 @@ public class DataElement implements Serializable {
         this.readLocked = locked;
     }
 
-    public boolean isLockedForWrite() {
-        return lockedForWrite;
+    public boolean isWriteLocked() {
+        return writeLocked;
     }
 
-    public void setLockedForWrite(boolean locked) {
-        this.lockedForWrite = locked;
+    public void setWriteLocked(boolean locked) {
+        this.writeLocked = locked;
     }
 
     /**
@@ -66,9 +54,9 @@ public class DataElement implements Serializable {
      * throws IllegalStateException if no write-lock is held
      */
     public void updateValue(String newValue, int newVersion) {
-        if (!lockedForWrite) {
+        if (!writeLocked)
             throw new IllegalStateException("Cannot write without acquiring write-lock first");
-        }
+
         this.value = newValue;
         this.version = newVersion;
     }
@@ -80,7 +68,7 @@ public class DataElement implements Serializable {
                 ", version=" + version +
                 ", versionReadLocked=" + versionReadLocked +
                 ", readLocked=" + readLocked +
-                ", writeLocked=" + lockedForWrite +
+                ", writeLocked=" + writeLocked +
                 '}';
     }
 
