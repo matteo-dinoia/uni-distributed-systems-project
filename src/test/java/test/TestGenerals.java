@@ -5,14 +5,10 @@ import node.NodeState;
 import org.junit.ClassRule;
 import org.junit.Test;
 import tester.Client;
-import tester.ClientOperation;
 import tester.Tester;
 import utils.Utils;
 
-import java.util.Map;
 import java.util.Set;
-
-import static java.util.Map.entry;
 
 public class TestGenerals {
     @ClassRule
@@ -66,48 +62,40 @@ public class TestGenerals {
     @Test
     public void join() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
-            boolean joined = test.join(6);
-            assert joined;
+            assert test.join(6);
         }
     }
 
     @Test
     public void leave() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
-            boolean left = test.leave(4);
-            assert left;
+            assert test.leave(4);
         }
     }
 
     @Test
     public void writeThenLeave() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
-            Client client = test.getClient();
-            int succedeed = test.clientOperation(Map.ofEntries(entry(client, ClientOperation.newWrite(2, 3))));
-            assert succedeed == 1;
-
-            boolean left = test.leave(3);
-            assert left;
+            assert test.write(null, 2, 3);
+            assert test.leave(3);
         }
     }
 
     @Test
     public void readInexistentValid() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 4, 5, 6))) {
-            Client client = test.getClient();
-            int succedeed = test.clientOperation(Map.ofEntries(entry(client, ClientOperation.newRead(3, 5))));
-            assert succedeed == 1;
+            assert test.read(null, 3, 5);
         }
     }
 
     @Test
     public void writeNew() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
-            Client client = test.getClient();
-            int succedeed = test.clientOperation(Map.ofEntries(entry(client, ClientOperation.newWrite(2, 3))));
-            assert succedeed == 1;
-            var _ = test.getNodeStorages();
+            assert test.write(null, 2, 3);
 
+            // Check actually written
+            var storages = test.getNodeStorages();
+            storages.assertLatest(2, 0);
         }
     }
 
@@ -115,25 +103,10 @@ public class TestGenerals {
     public void writeThenRead() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
             Client client = test.getClient();
-            int succedeed = test.clientOperation(Map.ofEntries(entry(client, ClientOperation.newWrite(2, 3))));
-            assert succedeed == 1;
+            assert test.write(client, 2, 3);
             var _ = test.getNodeStorages();
-            succedeed = test.clientOperation(Map.ofEntries(entry(client, ClientOperation.newRead(2, 5))));
-            assert succedeed == 1;
+            assert test.read(client, 2, 5);
             var _ = test.getNodeStorages();
-        }
-    }
-
-    @Test
-    public void writeNew2() {
-        try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
-            Client client = test.getClient();
-            int succedeed = test.clientOperation(Map.ofEntries(entry(client, ClientOperation.newWrite(2, 3))));
-            assert succedeed == 1;
-
-            // Check actually written
-            var storages = test.getNodeStorages();
-            storages.assertLatest(2, 0);
         }
     }
 
