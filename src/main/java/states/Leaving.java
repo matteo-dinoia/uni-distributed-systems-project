@@ -47,7 +47,7 @@ public class Leaving extends AbstractState {
             List<ActorRef<Message>> newResponsibles = members.findNewResponsiblesFor(key);
 
             for (ActorRef<Message> target : newResponsibles) {
-                var set = new_responsability.computeIfAbsent(target, ignored -> new HashMap<>());
+                var set = new_responsability.computeIfAbsent(target, _ -> new HashMap<>());
                 set.put(key, value);
             }
 

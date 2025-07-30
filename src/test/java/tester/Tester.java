@@ -121,17 +121,17 @@ public class Tester implements AutoCloseable {
         int successful = 0;
         for (var operation : operations.entrySet()) {
             Client client = operation.getKey();
-            boolean isRead = (operation.getValue() instanceof ClientOperation.Read ignored);
+            boolean isRead = (operation.getValue() instanceof ClientOperation.Read _);
 
             int key = switch (operation.getValue()) {
-                case ClientOperation.Read(int k, int ignored) -> k;
-                case ClientOperation.Write(int k, int ignored) -> k;
+                case ClientOperation.Read(int k, int _) -> k;
+                case ClientOperation.Write(int k, int _) -> k;
                 default -> throw new IllegalStateException("Someone made a new subclass and didn't add it here");
             };
 
             int nodeId = switch (operation.getValue()) {
-                case ClientOperation.Read(int ignored, int node) -> node;
-                case ClientOperation.Write(int ignored, int node) -> node;
+                case ClientOperation.Read(int _, int node) -> node;
+                case ClientOperation.Write(int _, int node) -> node;
                 default -> throw new IllegalStateException("Someone made a new subclass and didn't add it here");
             };
 
@@ -143,14 +143,14 @@ public class Tester implements AutoCloseable {
                     client.setKeyLatestVersion(msg.key(), msg.version());
                     successful++;
                 }
-                case ResponseMsgs.ReadResultFailed ignored -> {
+                case ResponseMsgs.ReadResultFailed _ -> {
                     assertOrThrows(isRead, "Unexpected Message received");
                 }
-                case ResponseMsgs.ReadResultInexistentValue ignored -> {
+                case ResponseMsgs.ReadResultInexistentValue _ -> {
                     assertOrThrows(isRead, "Unexpected Message received");
                     successful++;
                 }
-                case ResponseMsgs.ReadTimeout ignored -> {
+                case ResponseMsgs.ReadTimeout _ -> {
                     assertOrThrows(isRead, "Unexpected Message received");
                 }
                 case ResponseMsgs.WriteSucceeded msg -> {
@@ -158,7 +158,7 @@ public class Tester implements AutoCloseable {
                     client.setKeyLatestVersion(msg.key(), msg.newVersion());
                     successful++;
                 }
-                case ResponseMsgs.WriteTimeout ignored -> {
+                case ResponseMsgs.WriteTimeout _ -> {
                     assertOrThrows(!isRead, "Unexpected Message received");
                 }
                 default -> throw new RuntimeException("Unexpected Message received");
