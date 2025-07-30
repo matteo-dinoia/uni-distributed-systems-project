@@ -14,7 +14,6 @@ public class ControlMsg {
     public record CrashAck() implements Serializable {
     }
 
-    // TODO FIX never used
     public record JoinAck(boolean joined) implements Serializable {
     }
 
