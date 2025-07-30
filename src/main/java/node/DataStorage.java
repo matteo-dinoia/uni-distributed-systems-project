@@ -2,6 +2,7 @@ package node;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class DataStorage {
@@ -55,5 +56,12 @@ public class DataStorage {
                 data.remove(key);
         }
 
+    }
+
+    public Map<Integer, DataElement> getCopyOfData() {
+        HashMap<Integer, DataElement> copy = new HashMap<>();
+        for (var entry : this.data.entrySet())
+            copy.put(entry.getKey(), new DataElement(entry.getValue()));
+        return copy;
     }
 }

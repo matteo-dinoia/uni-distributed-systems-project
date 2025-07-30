@@ -9,6 +9,7 @@ import messages.client.DataMsg;
 import messages.client.ResponseMsgs;
 import messages.client.StatusMsg;
 import messages.control.ControlMsg;
+import node.DataElement;
 import node.NodeActor;
 import node.NodeState;
 import utils.Config;
@@ -16,6 +17,7 @@ import utils.Ring;
 
 import java.io.Serializable;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -81,13 +83,32 @@ public class Tester implements AutoCloseable {
     public NodeState getNodeState(int nodeId) {
         ActorRef<Message> node = getNode(nodeId);
         TestProbe<Message> probe = getProbe();
-        send(probe, node, new ControlMsg.DebugGetCurrentState());
+        send(probe, node, new ControlMsg.DebugCurrentStateRequest());
 
         Serializable content = probe.receiveMessage(TIMEOUT_PROBE).content();
-        if (!(content instanceof ControlMsg.DebugCurrentState(NodeState realState)))
+        if (!(content instanceof ControlMsg.DebugCurrentStateResponse(NodeState realState)))
             throw new RuntimeException("Wrong message received");
 
         return realState;
+    }
+
+    /// NodeID -> Storage (key -> Data Element)
+    public StorageTester getNodeStorages() {
+        Map<Integer, Map<Integer, DataElement>> res = new HashMap<>();
+        TestProbe<Message> probe = getProbe();
+
+        for (ActorRef<Message> node : group.getHashMap().values())
+            send(probe, node, new ControlMsg.DebugCurrentStorageRequest());
+
+        for (ActorRef<Message> node : group.getHashMap().values()) {
+            Serializable content = probe.receiveMessage(TIMEOUT_PROBE).content();
+            if (!(content instanceof ControlMsg.DebugCurrentStorageResponse(int id, Map<Integer, DataElement> data)))
+                throw new RuntimeException("Wrong message received");
+
+            res.put(id, data);
+        }
+
+        return new StorageTester(res);
     }
 
     /// GET+UPDATE: send ReadRequest and Update, wait for ReadResponse and WriteFullyCompleted
@@ -97,16 +118,12 @@ public class Tester implements AutoCloseable {
             Client client = operation.getKey();
             ClientOperation op = operation.getValue();
 
-            switch (op) {
-                case ClientOperation.Read(int key, int nodeId) -> {
-                    Integer lastVersion = client.getKeyLatestVersion(key);
-                    send(client.getReceiver(), getNode(nodeId), new DataMsg.Get(key, lastVersion));
-                }
-                case ClientOperation.Write(int key, int nodeId) -> {
-                    String newValue = "randValue=" + new Random().nextInt();
-                    send(client.getReceiver(), getNode(nodeId), new DataMsg.Update(key, newValue));
-                }
-                default -> throw new IllegalStateException("Someone made a new subclass and didn't add it here");
+            if (op.operation() == ClientOperation.READ) {
+                Integer lastVersion = client.getKeyLatestVersion(op.key());
+                send(client.getReceiver(), getNode(op.nodeId()), new DataMsg.Get(op.key(), lastVersion));
+            } else {
+                String newValue = "randValue=" + new Random().nextInt();
+                send(client.getReceiver(), getNode(op.nodeId()), new DataMsg.Update(op.key(), newValue));
             }
         }
 
@@ -114,13 +131,8 @@ public class Tester implements AutoCloseable {
         int successful = 0;
         for (var operation : operations.entrySet()) {
             Client client = operation.getKey();
-            boolean isRead = (operation.getValue() instanceof ClientOperation.Read _);
-
-            int nodeId = switch (operation.getValue()) {
-                case ClientOperation.Read(int _, int node) -> node;
-                case ClientOperation.Write(int _, int node) -> node;
-                default -> throw new IllegalStateException("Someone made a new subclass and didn't add it here");
-            };
+            boolean isRead = operation.getValue().operation() == ClientOperation.READ;
+            int nodeId = operation.getValue().nodeId();
 
             Serializable content = client.getReceiver().receiveMessage(TIMEOUT_PROBE).content();
 
@@ -190,6 +202,11 @@ public class Tester implements AutoCloseable {
 
         if (!(content instanceof ControlMsg.LeaveAck(boolean left)))
             throw new RuntimeException("Wrong message received");
+
+        if (left) {
+            group.remove(nodeId);
+            testKit.stop(node);
+        }
         return left;
     }
 

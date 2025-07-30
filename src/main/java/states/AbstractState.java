@@ -76,7 +76,8 @@ public abstract class AbstractState {
 
         return switch (message) {
             // ───────────── Debug (not overwritable) ─────────────
-            case ControlMsg.DebugGetCurrentState msg -> handleDebugGetCurrentState(msg);
+            case ControlMsg.DebugCurrentStateRequest msg -> handleDebugCurrentStateRequest(msg);
+            case ControlMsg.DebugCurrentStorageRequest msg -> handleDebugCurrentStorageRequest(msg);
             default -> this.handle(message);
         };
     }
@@ -127,9 +128,15 @@ public abstract class AbstractState {
     }
 
     // CUSTOM MESSAGE HANDLERS ---------------------------------------------------------------
-    private AbstractState handleDebugGetCurrentState(ControlMsg.DebugGetCurrentState ignored) {
-        members.sendTo(sender(), new ControlMsg.DebugCurrentState(getNodeRepresentation()));
-        return this;
+    private AbstractState handleDebugCurrentStateRequest(ControlMsg.DebugCurrentStateRequest ignored) {
+        members.sendTo(sender(), new ControlMsg.DebugCurrentStateResponse(getNodeRepresentation()));
+        return keepSameState();
+    }
+
+    private AbstractState handleDebugCurrentStorageRequest(ControlMsg.DebugCurrentStorageRequest msg) {
+        int nodeId = members.getSelfId();
+        members.sendTo(sender(), new ControlMsg.DebugCurrentStorageResponse(nodeId, storage.getCopyOfData()));
+        return keepSameState();
     }
 
     protected AbstractState handleReadResponse(NodeDataMsg.ReadResponse msg) {
