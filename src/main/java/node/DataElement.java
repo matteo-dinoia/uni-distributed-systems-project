@@ -16,6 +16,13 @@ public class DataElement implements Serializable {
         this.readLocked = false;
     }
 
+    public DataElement(DataElement toCopy) {
+        this.value = toCopy.value;
+        this.version = toCopy.version;
+        this.writeLocked = toCopy.writeLocked;
+        this.readLocked = toCopy.readLocked;
+    }
+
     /**
      * Returns the stored value, unless the element is locked for writing or read-locked.
      *

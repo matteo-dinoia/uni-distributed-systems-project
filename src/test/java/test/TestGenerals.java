@@ -5,35 +5,38 @@ import node.NodeState;
 import org.junit.ClassRule;
 import org.junit.Test;
 import tester.Client;
-import tester.ClientOperation;
 import tester.Tester;
 import utils.Utils;
 
-import java.util.Map;
 import java.util.Set;
-
-import static java.util.Map.entry;
 
 public class TestGenerals {
     @ClassRule
     public static final TestKitJunitResource testKit = new TestKitJunitResource();
 
     @Test
-    public void testCreation() {
+    public void creation() {
         try (Tester tester = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
             Utils.ignore(tester);
         }
     }
 
+    @Test
+    public void creationIsConsistent() {
+        try (Tester tester = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
+            var _ = tester.getNodeStorages();
+        }
+    }
+
     @Test(expected = RuntimeException.class)
-    public void testInvalidCreation() {
+    public void invalidCreation() {
         try (Tester tester = new Tester(testKit, Set.of(1))) {
             Utils.ignore(tester);
         }
     }
 
     @Test
-    public void testCrashExistent() {
+    public void crashExistent() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
             test.crash(5);
             assert test.getNodeState(5) == NodeState.CRASHED;
@@ -41,14 +44,14 @@ public class TestGenerals {
     }
 
     @Test(expected = RuntimeException.class)
-    public void testCrashNotExistent() {
+    public void crashNotExistent() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
             test.crash(6);
         }
     }
 
     @Test
-    public void testCrashAndRecover() {
+    public void crashAndRecover() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
             test.crash(3);
             boolean recovered = test.recover(3);
@@ -57,48 +60,56 @@ public class TestGenerals {
     }
 
     @Test
-    public void testJoin() {
+    public void join() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
-            boolean joined = test.join(6);
-            assert joined;
+            assert test.join(6);
         }
     }
 
     @Test
-    public void testLeave() {
+    public void leave() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
-            boolean left = test.leave(4);
-            assert left;
+            assert test.leave(4);
         }
     }
 
     @Test
-    public void testWriteThenLeave() {
+    public void writeThenLeave() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
-            Client client = test.getClient();
-            int succedeed = test.clientOperation(Map.ofEntries(entry(client, new ClientOperation.Write(2, 3))));
-            assert succedeed == 1;
-
-            boolean left = test.leave(3);
-            assert left;
+            assert test.write(null, 2, 3);
+            assert test.leave(3);
+            var _ = test.getNodeStorages();
         }
     }
 
     @Test
-    public void testReadInexistentValid() {
+    public void readInexistentValid() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 4, 5, 6))) {
-            Client client = test.getClient();
-            int succedeed = test.clientOperation(Map.ofEntries(entry(client, new ClientOperation.Read(3, 5))));
-            assert succedeed == 1;
+            assert test.read(null, 3, 5);
         }
     }
 
     @Test
-    public void testWriteNew() {
+    public void writeNew() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
-            Client client = test.getClient();
-            int succedeed = test.clientOperation(Map.ofEntries(entry(client, new ClientOperation.Write(2, 3))));
-            assert succedeed == 1;
+            assert test.write(null, 2, 3);
+
+            // Check actually written
+            var storages = test.getNodeStorages();
+            storages.assertLatest(2, 0);
         }
     }
+
+    @Test
+    public void writeThenRead() {
+        try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
+            Client client = test.getClient();
+            assert test.write(client, 2, 3);
+            var _ = test.getNodeStorages();
+            assert test.read(client, 2, 5);
+            var _ = test.getNodeStorages();
+        }
+    }
+
+
 }

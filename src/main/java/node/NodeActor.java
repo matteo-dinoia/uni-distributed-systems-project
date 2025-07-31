@@ -30,22 +30,26 @@ public class NodeActor extends AbstractBehavior<Message> {
 
     private Behavior<Message> handle(Message msg) {
         var nextState = state.handle(msg.sender(), msg.content());
-
-
         if (nextState == null) {
-            System.out.println("PANIC on node " + node.members().getSelfId());
-        } else {
-            NodeState curr = this.state.getNodeRepresentation();
-            NodeState next = nextState.getNodeRepresentation();
-            if (!curr.isValidChange(next))
-                System.out.println("INVALID STATE TRANSACTION in node " + node.members().getSelfId() +
-                        " from " + curr + " to " + next);
-            else if (curr != next)
-                System.out.println("STATE CHANGED in node " + node.members().getSelfId() +
-                        " from " + curr + " to " + next);
-            this.state = nextState;
+            System.err.println("[FATAL] Panic on node " + node.members().getSelfId());
+            return Behaviors.stopped();
         }
 
+        NodeState curr = this.state.getNodeRepresentation();
+        NodeState next = nextState.getNodeRepresentation();
+        if (!curr.isValidChange(next)) {
+            System.err.println("[FATAL] Invalid state transaction in node " + node.members().getSelfId() +
+                    " from " + curr + " to " + next);
+            return Behaviors.stopped();
+        }
+
+        if (curr != next)
+            System.out.println(" •  STATE CHANGED in node " + node.members().getSelfId() +
+                    " from " + curr + " to " + next);
+
+        this.state = nextState;
+        if (next == NodeState.LEFT)
+            return Behaviors.stopped();
         return this;
     }
 
