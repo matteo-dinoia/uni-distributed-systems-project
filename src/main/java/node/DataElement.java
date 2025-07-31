@@ -29,6 +29,7 @@ public class DataElement implements Serializable {
         this.lockHolder = toCopy.lockHolder;
     }
 
+    @SuppressWarnings("MethodDoesntCallSuperMethod")
     public DataElement clone() {
         return new DataElement(this);
     }
@@ -51,6 +52,7 @@ public class DataElement implements Serializable {
     }
 
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean isLockedBy(ActorRef<Message> node, int reqId) {
         return this.lockHolder != null && lockHolder.equals(new Pair<>(node, reqId));
     }

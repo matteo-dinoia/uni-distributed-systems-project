@@ -138,7 +138,7 @@ public abstract class AbstractState {
 
     private AbstractState handleDebugCurrentStorageRequest(ControlMsg.DebugCurrentStorageRequest ignored) {
         int nodeId = members.getSelfId();
-        members.sendTo(sender(), storage.getDebugInfoMsg(members.getSelfId()));
+        members.sendTo(sender(), storage.getDebugInfoMsg(nodeId));
         return keepSameState();
     }
 

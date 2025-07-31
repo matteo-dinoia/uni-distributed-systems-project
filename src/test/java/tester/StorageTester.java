@@ -13,10 +13,6 @@ import java.util.Set;
 import static java.lang.System.out;
 
 public record StorageTester(Map<Integer, Map<Integer, DataElement>> nodesData) {
-    public StorageTester(Map<Integer, Map<Integer, DataElement>> nodesData) {
-        this.nodesData = nodesData;
-    }
-
     public void assertValid() {
         assertValid(new HashSet<>());
     }
