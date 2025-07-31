@@ -1,9 +1,6 @@
 package utils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.TreeMap;
+import java.util.*;
 
 
 public class Ring<T> {
@@ -30,7 +27,7 @@ public class Ring<T> {
         return elem == null ? null : elem.value;
     }
 
-    public void replaceAll(HashMap<Integer, T> newValues) {
+    public void replaceAll(Map<Integer, T> newValues) {
         ring.clear();
         for (var entry : newValues.entrySet())
             this.put(entry.getKey(), entry.getValue());
@@ -123,13 +120,14 @@ public class Ring<T> {
         return res.stream().distinct().toList();
     }
 
-    /// Is inclusive
+    /// Not inclusive
     public int circularDistance(int start, int end) {
         RingNode<T> curr = ring.get(start);
         RingNode<T> endPoint = ring.get(end);
-        assert curr != null && endPoint != null;
+        assert curr != null && endPoint != null
+                : "Computing circular distance of not existent values";
 
-        int counter = 1;
+        int counter = 0;
         while (curr != endPoint) {
             curr = curr.right;
             counter++;

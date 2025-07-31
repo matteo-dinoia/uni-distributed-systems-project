@@ -12,6 +12,7 @@ import node.DataStorage;
 import node.MemberManager;
 import node.Node;
 import node.NodeState;
+import utils.Utils;
 
 import java.io.Serializable;
 
@@ -36,7 +37,7 @@ public abstract class AbstractState {
 
     @SuppressWarnings("SameReturnValue")
     protected AbstractState panic() {
-        System.out.println("[FATAL] Something catastrofic happened");
+        System.err.println("[FATAL] Something catastrofic happened");
         return null;
     }
 
@@ -72,7 +73,8 @@ public abstract class AbstractState {
 
     public final AbstractState handle(ActorRef<Message> sender, Serializable message) {
         overwriteSender(sender);
-        System.out.println("==> NODE " + members.getSelfId() + " RECEIVED  " + message.toString());
+        if (getNodeRepresentation() != NodeState.SUB)
+            Utils.debugPrint("==> NODE " + members.getSelfId() + " (" + getNodeRepresentation() + ") RECEIVED from " + sender().path().name() + " " + message.toString());
 
         return switch (message) {
             // ───────────── Debug (not overwritable) ─────────────
@@ -84,6 +86,7 @@ public abstract class AbstractState {
 
     // Overriding this ignore all default handler
     protected AbstractState handle(Serializable message) {
+
 
         return switch (message) {
             // ───────────── Join ─────────────
@@ -120,7 +123,7 @@ public abstract class AbstractState {
             case NodeDataMsg.WriteLockRequest msg -> handleWriteLockRequest(msg);
             case NodeDataMsg.WriteLockGranted msg -> handleWriteLockGranted(msg);
             case NodeDataMsg.WriteLockDenied msg -> handleWriteLockDenied(msg);
-            case NodeDataMsg.WriteLockRelease msg -> handleWriteLockRelease(msg);
+            case NodeDataMsg.LocksRelease msg -> handleLocksRelease(msg);
             case NodeDataMsg.ReadLockAcked msg -> handleReadLockAcked(msg);
             case NodeDataMsg.ReadLockRequest msg -> handleReadLockRequest(msg);
             default -> throw new IllegalStateException("Unexpected message: " + message);
@@ -135,7 +138,7 @@ public abstract class AbstractState {
 
     private AbstractState handleDebugCurrentStorageRequest(ControlMsg.DebugCurrentStorageRequest ignored) {
         int nodeId = members.getSelfId();
-        members.sendTo(sender(), new ControlMsg.DebugCurrentStorageResponse(nodeId, storage.getCopyOfData()));
+        members.sendTo(sender(), storage.getDebugInfoMsg(members.getSelfId()));
         return keepSameState();
     }
 
@@ -235,7 +238,7 @@ public abstract class AbstractState {
         return default_option(msg);
     }
 
-    protected AbstractState handleWriteLockRelease(NodeDataMsg.WriteLockRelease msg) {
+    protected AbstractState handleLocksRelease(NodeDataMsg.LocksRelease msg) {
         return default_option(msg);
     }
 

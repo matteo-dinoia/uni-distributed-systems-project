@@ -13,7 +13,9 @@ import states.AbstractState;
 import states.Normal;
 import utils.Config;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.stream.Stream;
 
 public class Update extends AbstractState {
     // Phase indicators
@@ -67,12 +69,7 @@ public class Update extends AbstractState {
      */
     @Override
     protected AbstractState handleWriteLockGranted(NodeDataMsg.WriteLockGranted msg) {
-        if (msg.requestId() != requestId) return ignore();
-
-        if (phase != Phase.WRITE_LOCK) {
-            members.sendTo(sender(), new NodeDataMsg.WriteLockRelease(requestId, key));
-            return keepSameState();
-        }
+        if (msg.requestId() != requestId || phase != Phase.WRITE_LOCK) return ignore();
 
         writeLockGranted.add(sender());
         // update the highest version seen so far
@@ -133,11 +130,8 @@ public class Update extends AbstractState {
         if (phase != Phase.WRITE_AND_RELEASE || msg.requestId() != requestId) return ignore();
 
         writeAcked.add(sender());
-        if (writeAcked.size() >= writeLockGranted.size()) {
-            // That is only needed for the tester
-            members.sendTo(client, new ControlMsg.WriteFullyCompleted());
-            return new Normal(super.node);
-        }
+        if (writeAcked.size() >= writeLockGranted.size())
+            return concludeOperation();
 
         return keepSameState();
     }
@@ -151,9 +145,30 @@ public class Update extends AbstractState {
         return keepSameState();
     }
 
-    private AbstractState abortOperation() {
-        members.sendTo(client, new ResponseMsgs.WriteTimeout(key));
-        members.sendTo(writeLockGranted.stream(), new NodeDataMsg.WriteLockRelease(requestId, key));
+    private AbstractState concludeOperation() {
+        // Free all lock that didn't respond
+        members.sendTo(getToFree(true), new NodeDataMsg.LocksRelease(requestId, key));
+
+        // That is only needed for the tester (TODO ADD disabler)
+        members.sendTo(client, new ControlMsg.WriteFullyCompleted());
         return new Normal(super.node);
+    }
+
+    private AbstractState abortOperation() {
+        // Free all lock not denied
+        members.sendTo(getToFree(false), new NodeDataMsg.LocksRelease(requestId, key));
+
+        members.sendTo(client, new ResponseMsgs.WriteTimeout(key));
+        return new Normal(super.node);
+    }
+
+    private Stream<ActorRef<Message>> getToFree(boolean successfulRead) {
+        var res = new ArrayList<>(members.getResponsibleForData(key));
+
+        if (successfulRead)
+            res.removeAll(writeLockGranted);
+        res.removeAll(writeLockDenied);
+
+        return res.stream();
     }
 }

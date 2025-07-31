@@ -4,6 +4,7 @@ import node.DataElement;
 import node.NodeState;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Map;
 
 public class ControlMsg {
@@ -35,5 +36,12 @@ public class ControlMsg {
     }
 
     public record DebugCurrentStorageResponse(int nodeId, Map<Integer, DataElement> data) implements Serializable {
+        public DebugCurrentStorageResponse(int nodeId, Map<Integer, DataElement> data) {
+            this.nodeId = nodeId;
+
+            var deepCopy = new HashMap<>(data);
+            deepCopy.replaceAll((_, v) -> v.clone());
+            this.data = deepCopy;
+        }
     }
 }

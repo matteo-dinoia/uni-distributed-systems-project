@@ -28,6 +28,7 @@ dependencies {
 }
 
 test {
+    jvmArgs '--sun-misc-unsafe-memory-access=allow'
     useJUnit()
     testLogging {
         outputs.upToDateWhen { false }
