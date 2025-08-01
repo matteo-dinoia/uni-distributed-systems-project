@@ -141,34 +141,7 @@ public class MemberManager {
         return getResponsibleForData(key).contains(actor);
     }
 
-    // COMPUTING DISTANCES
-
-    public int closerLower(int keyA, Integer keyB) {
-        if (keyB == null)
-            return keyA;
-
-        int distA = memberList.circularDistance(keyA, selfId);
-        int distB = memberList.circularDistance(keyB, selfId);
-        return distA < distB ? keyA : keyB;
-    }
-
-    public int closerHigher(int keyA, Integer keyB) {
-        if (keyB == null)
-            return keyA;
-
-        int distA = memberList.circularDistance(selfId, keyA);
-        int distB = memberList.circularDistance(selfId, keyB);
-        return distA < distB ? keyA : keyB;
-    }
-
-    public int countMembersBetweenIncluded(int lower, int higher) {
-        return memberList.circularDistance(lower, higher);
-    }
-
-
     public int size() {
         return memberList.size();
     }
-
-
 }

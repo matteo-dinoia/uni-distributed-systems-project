@@ -59,6 +59,7 @@ public record StorageTester(Map<Integer, Map<Integer, SendableData.Debug>> nodes
         }
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean isResponsabile(Ring<Integer> group, int key, Integer node) {
         var responsible = group.getInterval(group.getCeilKey(key), 0, Config.N - 1);
         return responsible.contains(node);

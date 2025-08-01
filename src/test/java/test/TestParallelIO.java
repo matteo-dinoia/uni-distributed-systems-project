@@ -43,6 +43,26 @@ public class TestParallelIO {
     }
 
     @Test
+    public void multipleWriteOnDifferent() {
+        try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
+            var res = test.clientOperations(Map.ofEntries(
+                    write(test.getClient(), 1, 2),
+                    write(test.getClient(), 2, 3),
+                    write(test.getClient(), 3, 4)
+            ));
+
+            assert res.size() == 3;
+
+            // Still valid
+            var storages = test.getNodeStorages();
+            storages.assertValid();
+            storages.assertLatest(1, 0);
+            storages.assertLatest(2, 0);
+            storages.assertLatest(3, 0);
+        }
+    }
+
+    @Test
     public void multipleReadOnNotExistent() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
             var res = test.clientOperations(Map.ofEntries(
@@ -57,7 +77,7 @@ public class TestParallelIO {
 
     @Test
     public void multipleReadOnExistent() {
-        final int key = 1;
+        final int key = 2;
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
             Client[] clients = {test.getClient(), test.getClient(), test.getClient()};
             assert test.write(clients[0], key, 2);

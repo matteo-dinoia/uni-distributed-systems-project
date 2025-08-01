@@ -147,6 +147,7 @@ public class Ring<T> {
     }
 
     /// Not inclusive
+    @SuppressWarnings("unused")
     public int circularDistance(int start, int end) {
         RingNode<T> curr = ring.get(start);
         RingNode<T> endPoint = ring.get(end);
