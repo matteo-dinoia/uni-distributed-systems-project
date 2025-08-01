@@ -22,6 +22,11 @@ public class Ring<T> {
         ring = new TreeMap<>();
     }
 
+    public Ring(Map<Integer, T> initialValues) {
+        ring = new TreeMap<>();
+        replaceAll(initialValues);
+    }
+
     public T get(int key) {
         var elem = ring.get(key);
         return elem == null ? null : elem.value;
@@ -94,6 +99,7 @@ public class Ring<T> {
         return ring.size();
     }
 
+    /// Return interval completely adjacted on right or left (center excluded)
     private List<T> getPartialInterval(RingNode<T> start, int size, boolean goingRight) {
         ArrayList<T> res = new ArrayList<>();
         RingNode<T> curr = start;
@@ -104,18 +110,19 @@ public class Ring<T> {
         return res;
     }
 
+
+    /// Return list with n element on left and m on right
+    /// it is assumed sorted
+    @SuppressWarnings("CollectionAddAllCanBeReplacedWithConstructor")
     public List<T> getInterval(int key, int leftSize, int rightSize) {
+        ArrayList<T> res = new ArrayList<>();
         RingNode<T> startPoint = ring.get(key);
         if (startPoint == null)
             return null;
 
-        List<T> leftList = getPartialInterval(startPoint, leftSize, false);
-        List<T> rightList = getPartialInterval(startPoint, rightSize, true);
-
-        ArrayList<T> res = new ArrayList<>();
-        res.addAll(leftList);
-        res.addAll(rightList);
+        res.addAll(getPartialInterval(startPoint, leftSize, false).reversed());
         res.add(startPoint.value);
+        res.addAll(getPartialInterval(startPoint, rightSize, true));
 
         return res.stream().distinct().toList();
     }
