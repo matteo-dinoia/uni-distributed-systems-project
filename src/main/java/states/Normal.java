@@ -210,7 +210,7 @@ public class Normal extends AbstractState {
 
     @Override
     protected AbstractState handlePassResponsabilityRequest(NodeMsg.PassResponsabilityRequest msg) {
-        storage.putAll(msg.responsabilities());
+        storage.refreshIfNeeded(msg.responsabilities());
         members.sendTo(sender(), new NodeMsg.PassResponsabilityResponse(msg.requestId(), msg.responsabilities().keySet()));
         return keepSameState();
     }

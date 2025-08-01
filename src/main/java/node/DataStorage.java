@@ -42,10 +42,14 @@ public class DataStorage {
             data.remove(key);
     }
 
-    public void putAll(Map<Integer, DataElement> toInsert) {
-        for (var elem : toInsert.entrySet()) {
-            assert elem.getKey() != null : "Inserting a null key";
-            put(elem.getKey(), elem.getValue().clone());
+    public void refreshIfNeeded(Map<Integer, DataElement> toInsertList) {
+        for (var toInsert : toInsertList.entrySet()) {
+            assert toInsert.getKey() != null : "Inserting a null key";
+            DataElement existing = get(toInsert.getKey());
+            DataElement elem = toInsert.getValue();
+
+            if (existing.getVersion() < elem.getVersion())
+                existing.updateValue(elem.getValue(), elem.getVersion());
         }
 
     }
