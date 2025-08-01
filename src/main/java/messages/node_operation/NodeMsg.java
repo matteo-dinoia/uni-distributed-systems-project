@@ -2,11 +2,10 @@ package messages.node_operation;
 
 import akka.actor.typed.ActorRef;
 import messages.Message;
-import node.DataElement;
+import node.SendableData;
 
 import java.io.Serializable;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,24 +27,18 @@ public class NodeMsg {
     public record ResponsabilityRequest(int requestId, int newNodeId) implements Serializable {
     }
 
-    public record ResponsabilityResponse(int requestId, int senderId, Map<Integer, DataElement> data) implements Serializable {
-        public ResponsabilityResponse(int requestId, int senderId, Map<Integer, DataElement> data) {
+    public record ResponsabilityResponse(int requestId, int senderId, Map<Integer, SendableData> data) implements Serializable {
+        public ResponsabilityResponse(int requestId, int senderId, Map<Integer, SendableData> data) {
             this.requestId = requestId;
             this.senderId = senderId;
-
-            var deepCopy = new HashMap<>(data);
-            deepCopy.replaceAll((_, v) -> v.clone());
-            this.data = deepCopy;
+            this.data = Collections.unmodifiableMap(data);
         }
     }
 
-    public record PassResponsabilityRequest(int requestId, Map<Integer, DataElement> responsabilities) implements Serializable {
-        public PassResponsabilityRequest(int requestId, Map<Integer, DataElement> responsabilities) {
+    public record PassResponsabilityRequest(int requestId, Map<Integer, SendableData> responsabilities) implements Serializable {
+        public PassResponsabilityRequest(int requestId, Map<Integer, SendableData> responsabilities) {
             this.requestId = requestId;
-
-            var deepCopy = new HashMap<>(responsabilities);
-            deepCopy.replaceAll((_, v) -> v.clone());
-            this.responsabilities = deepCopy;
+            this.responsabilities = Collections.unmodifiableMap(responsabilities);
         }
     }
 

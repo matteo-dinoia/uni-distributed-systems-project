@@ -1,10 +1,10 @@
 package messages.control;
 
-import node.DataElement;
 import node.NodeState;
+import node.SendableData;
 
 import java.io.Serializable;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 
 public class ControlMsg {
@@ -35,13 +35,10 @@ public class ControlMsg {
     public record DebugCurrentStorageRequest() implements Serializable {
     }
 
-    public record DebugCurrentStorageResponse(int nodeId, Map<Integer, DataElement> data) implements Serializable {
-        public DebugCurrentStorageResponse(int nodeId, Map<Integer, DataElement> data) {
+    public record DebugCurrentStorageResponse(int nodeId, Map<Integer, SendableData.Debug> data) implements Serializable {
+        public DebugCurrentStorageResponse(int nodeId, Map<Integer, SendableData.Debug> data) {
             this.nodeId = nodeId;
-
-            var deepCopy = new HashMap<>(data);
-            deepCopy.replaceAll((_, v) -> v.clone());
-            this.data = deepCopy;
+            this.data = Collections.unmodifiableMap(data);
         }
     }
 }

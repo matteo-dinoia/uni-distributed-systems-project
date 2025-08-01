@@ -115,7 +115,7 @@ public class Update extends AbstractState {
         readLockAcked.add(sender());
         if (readLockAcked.size() >= writeLockGranted.size()) {
             phase = Phase.WRITE_AND_RELEASE;
-            if (newVer == null) return panic();
+            if (newVer == null) return panic(""); //TODO
             members.sendTo(writeLockGranted.stream(), new NodeDataMsg.WriteRequest(requestId, key, newValue, newVer));
         }
         return keepSameState();

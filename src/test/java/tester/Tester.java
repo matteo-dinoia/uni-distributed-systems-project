@@ -9,11 +9,12 @@ import messages.client.DataMsg;
 import messages.client.ResponseMsgs;
 import messages.client.StatusMsg;
 import messages.control.ControlMsg;
-import node.DataElement;
 import node.NodeActor;
 import node.NodeState;
+import node.SendableData;
 import utils.Config;
 import utils.Ring;
+import utils.Utils;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -38,7 +39,7 @@ public class Tester implements AutoCloseable {
 
         initializeMembers(initialNodes);
 
-        System.out.println();
+        Utils.debugPrint("");
     }
 
     private void initializeMembers(Set<Integer> initialNodes) {
@@ -89,12 +90,13 @@ public class Tester implements AutoCloseable {
         if (!(content instanceof ControlMsg.DebugCurrentStateResponse(NodeState realState)))
             throw new RuntimeException("Wrong message received");
 
+        Utils.debugPrint("");
         return realState;
     }
 
     /// NodeID -> Storage (key -> Data Element)
     public StorageTester getNodeStorages() {
-        Map<Integer, Map<Integer, DataElement>> res = new HashMap<>();
+        Map<Integer, Map<Integer, SendableData.Debug>> res = new HashMap<>();
         TestProbe<Message> probe = getProbe();
 
         for (ActorRef<Message> node : group.getHashMap().values())
@@ -102,7 +104,9 @@ public class Tester implements AutoCloseable {
 
         for (var _ : group.getHashMap().keySet()) {
             Serializable content = probe.receiveMessage(TIMEOUT_PROBE).content();
-            if (!(content instanceof ControlMsg.DebugCurrentStorageResponse(int id, Map<Integer, DataElement> data)))
+            if (!(content instanceof ControlMsg.DebugCurrentStorageResponse(
+                    int id, Map<Integer, SendableData.Debug> data
+            )))
                 throw new RuntimeException("Wrong message received");
 
             res.put(id, data);
@@ -186,6 +190,7 @@ public class Tester implements AutoCloseable {
                 client.getReceiver().expectMessage(TIMEOUT_PROBE, new Message(getNode(nodeId), new ControlMsg.WriteFullyCompleted()));
         }
 
+        Utils.debugPrint("");
         return successfulOp;
     }
 
@@ -208,6 +213,7 @@ public class Tester implements AutoCloseable {
             group.put(nodeId, node);
         else
             testKit.stop(node);
+        Utils.debugPrint("");
         return joined;
     }
 
@@ -226,6 +232,7 @@ public class Tester implements AutoCloseable {
             group.remove(nodeId);
             testKit.stop(node);
         }
+        Utils.debugPrint("");
         return left;
     }
 
@@ -242,6 +249,7 @@ public class Tester implements AutoCloseable {
 
         if (!(content instanceof ControlMsg.RecoverAck(boolean recovered)))
             throw new RuntimeException("Wrong message received");
+        Utils.debugPrint("");
         return recovered;
     }
 
@@ -251,6 +259,7 @@ public class Tester implements AutoCloseable {
         TestProbe<Message> probe = getProbe();
         send(probe, node, new StatusMsg.Crash());
         probe.expectMessage(TIMEOUT_PROBE, new Message(node, new ControlMsg.CrashAck()));
+        Utils.debugPrint("");
     }
 
     @Override

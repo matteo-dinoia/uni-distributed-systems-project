@@ -11,12 +11,14 @@ import messages.node_operation.NotifyMsg;
 import node.DataElement;
 import node.Node;
 import node.NodeState;
+import node.SendableData;
 import states.sub.Get;
 import states.sub.Update;
 import utils.Config;
 
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.Set;
 
 public class Normal extends AbstractState {
     // Map client to its own controller
@@ -53,18 +55,18 @@ public class Normal extends AbstractState {
 
     @Override
     protected AbstractState handleCrash(StatusMsg.Crash msg) {
-        if (!substates.isEmpty()) {
-            return panic();
-        }
+        if (!substates.isEmpty())
+            return panic("Crashing while still some operation open");
+
         members.sendTo(sender(), new ControlMsg.CrashAck());
         return new Crashed(super.node);
     }
 
     @Override
     protected AbstractState handleLeave(StatusMsg.Leave msg) {
-        if (!substates.isEmpty()) {
-            return panic();
-        }
+        if (!substates.isEmpty())
+            return panic("Leaving while still some operation open");
+
         return Leaving.enter(super.node, sender());
     }
 
@@ -99,16 +101,12 @@ public class Normal extends AbstractState {
 
     public AbstractState handleSubstates(Serializable msg, int requestId) {
         AbstractState sub = substates.get(requestId);
-        if (sub == null) {
-            // TODO maybe a middle groud?
+        if (sub == null)
             return ignore();
-            //log("[WARN] Node " + members.getSelfId() + " ignoring NORMAL substate message '" + msg.getClass().getName() + "' without explicitely declaring so");
-        }
-
 
         var nextSubstate = sub.handle(sender(), msg);
         if (nextSubstate == null)
-            return panic();
+            return panic("Substate panic");
 
         if (nextSubstate.getNodeRepresentation() == NodeState.NORMAL)
             substates.remove(requestId);
@@ -117,12 +115,7 @@ public class Normal extends AbstractState {
 
     @Override
     protected AbstractState handleWriteLockRequest(NodeDataMsg.WriteLockRequest msg) {
-        DataElement elem = storage.get(msg.key());
-        if (elem == null) {
-            elem = new DataElement();
-            storage.put(msg.key(), elem);
-        }
-
+        DataElement elem = storage.getOrInsertEmpty(msg.key());
 
         if (elem.writeLock(sender(), msg.requestId()))
             members.sendTo(sender(), new NodeDataMsg.WriteLockGranted(msg.requestId(), msg.key(), elem.getVersion()));
@@ -150,10 +143,11 @@ public class Normal extends AbstractState {
     protected AbstractState handleReadLockRequest(NodeDataMsg.ReadLockRequest msg) {
         DataElement elem = storage.get(msg.key());
         if (elem == null || !elem.isWriteLocked())
-            return panic();
+            return panic("Trying to read lock before write locking");
 
         boolean couldLock = elem.readLock(sender(), msg.requestId());
-        assert couldLock : "Read locking failed which is not possible on node " + members.getSelfId();
+        if (!couldLock)
+            return panic("Trying to read lock before write locking");
 
         members.sendTo(sender(), new NodeDataMsg.ReadLockAcked(msg.requestId()));
         return keepSameState();
@@ -163,27 +157,27 @@ public class Normal extends AbstractState {
     protected AbstractState handleWriteRequest(NodeDataMsg.WriteRequest msg) {
         DataElement elem = storage.get(msg.key());
         if (elem == null)
-            return panic();
+            return panic("Writing before read locking");
 
         boolean wasCorrectlyLocked = elem.freeLocks(sender(), msg.requestId());
-        assert wasCorrectlyLocked : "Writing before read locking on node " + members.getSelfId();
-        elem.updateValue(msg.value(), msg.version());
+        if (!wasCorrectlyLocked)
+            return panic("Writing before read locking");
 
+        elem.updateValue(msg.value(), msg.version());
         members.sendTo(sender(), new NodeDataMsg.WriteAck(msg.requestId()));
         return keepSameState();
     }
 
     @Override
     protected AbstractState handleReadRequest(NodeDataMsg.ReadRequest msg) {
-
         DataElement elem = storage.get(msg.key());
         if (elem == null)
             elem = new DataElement();
 
-        if (!elem.isReadLocked())
-            members.sendTo(sender(), new NodeDataMsg.ReadResponse(msg.requestId(), elem));
-        else if (!members.isResponsible(members.getSelfRef(), msg.key()))
-            return panic();
+        if (!members.isResponsible(members.getSelfRef(), msg.key()))
+            return panic("Asking for something not under my responsability");
+        else if (!elem.isReadLocked())
+            members.sendTo(sender(), new NodeDataMsg.ReadResponse(msg.requestId(), msg.key(), elem.sendable()));
         else
             members.sendTo(sender(), new NodeDataMsg.ReadImpossibleForLock(msg.requestId()));
         return keepSameState();
@@ -198,10 +192,10 @@ public class Normal extends AbstractState {
 
     @Override
     protected AbstractState handleResponsabilityRequest(NodeMsg.ResponsabilityRequest msg) {
-        HashMap<Integer, DataElement> toSend = new HashMap<>();
+        HashMap<Integer, SendableData> toSend = new HashMap<>();
         for (Integer key : storage.getAllKeys()) {
             if (members.willBeResponsible(msg.newNodeId(), sender(), key))
-                toSend.put(key, storage.get(key));
+                toSend.put(key, storage.get(key).sendable());
         }
 
         members.sendTo(sender(), new NodeMsg.ResponsabilityResponse(msg.requestId(), members.getSelfId(), toSend));
@@ -210,8 +204,11 @@ public class Normal extends AbstractState {
 
     @Override
     protected AbstractState handlePassResponsabilityRequest(NodeMsg.PassResponsabilityRequest msg) {
-        storage.putAll(msg.responsabilities());
-        members.sendTo(sender(), new NodeMsg.PassResponsabilityResponse(msg.requestId(), msg.responsabilities().keySet()));
+        storage.refreshIfNeeded(msg.responsabilities());
+
+        Set<Integer> acks = msg.responsabilities().keySet();
+        members.sendTo(sender(), new NodeMsg.PassResponsabilityResponse(msg.requestId(), acks));
+
         return keepSameState();
     }
 

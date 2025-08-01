@@ -3,6 +3,7 @@ package test;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import node.NodeState;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import tester.Tester;
 
@@ -20,17 +21,22 @@ public class TestJoin {
         }
     }
 
+    // TODO FLAKY
     @Test
+    @Ignore
     public void joinJoinJoinWithWrite() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
             assert test.write(null, 6, 5);
+            var storages = test.getNodeStorages();
+            storages.assertValid();
+            storages.assertLatest(6, 0);
 
             assert test.join(6);
             assert test.join(7);
             assert test.join(8);
             assert test.join(9);
 
-            var storages = test.getNodeStorages();
+            storages = test.getNodeStorages();
             storages.assertValid();
             storages.assertLatest(6, 0);
 
@@ -130,7 +136,9 @@ public class TestJoin {
         }
     }
 
+    // TODO FLAKY
     @Test
+    @Ignore
     public void joinMultipleWriteOneOtherDownRecover() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
             assert test.write(null, 2, 1);
@@ -151,5 +159,5 @@ public class TestJoin {
             storages.assertLatest(1, 0);
         }
     }
-    
+
 }

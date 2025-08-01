@@ -1,6 +1,7 @@
 package tester;
 
 import node.DataElement;
+import node.SendableData;
 import utils.Config;
 import utils.Pair;
 import utils.Ring;
@@ -12,7 +13,7 @@ import java.util.Set;
 
 import static java.lang.System.out;
 
-public record StorageTester(Map<Integer, Map<Integer, DataElement>> nodesData) {
+public record StorageTester(Map<Integer, Map<Integer, SendableData.Debug>> nodesData) {
     public void assertValid() {
         assertValid(new HashSet<>());
     }
@@ -33,7 +34,7 @@ public record StorageTester(Map<Integer, Map<Integer, DataElement>> nodesData) {
 
         for (var elem : this.nodesData.entrySet()) {
             int nodeId = elem.getKey();
-            Map<Integer, DataElement> storage = elem.getValue();
+            var storage = elem.getValue();
             assert !storage.containsKey(null) : "Node " + nodeId + "contains null key";
         }
     }
@@ -42,9 +43,9 @@ public record StorageTester(Map<Integer, Map<Integer, DataElement>> nodesData) {
     public void assertNoNegativeVersion() {
         for (var elem : this.nodesData.entrySet()) {
             int nodeId = elem.getKey();
-            Map<Integer, DataElement> storage = elem.getValue();
+            var storage = elem.getValue();
 
-            var invalids = storage.values().stream().filter(val -> val.getVersion() < 0);
+            var invalids = storage.values().stream().filter(val -> val.version() < 0);
             assert invalids.findAny().isEmpty() : "Nodes " + nodeId + " contains negative version number";
         }
     }
@@ -52,9 +53,9 @@ public record StorageTester(Map<Integer, Map<Integer, DataElement>> nodesData) {
     public void assertNoLockLost() {
         for (var elem : this.nodesData.entrySet()) {
             int nodeId = elem.getKey();
-            Map<Integer, DataElement> storage = elem.getValue();
+            var storage = elem.getValue();
 
-            var invalids = storage.values().stream().filter(val -> (val.isReadLocked() || val.isWriteLocked()) && val.getVersion() >= 0);
+            var invalids = storage.values().stream().filter(val -> (val.lockStatus() != DataElement.LockStatus.FREE) && val.version() >= 0);
             assert invalids.findAny().isEmpty() : "Nodes " + nodeId + " contains values locked on read or on write";
         }
     }
@@ -80,7 +81,7 @@ public record StorageTester(Map<Integer, Map<Integer, DataElement>> nodesData) {
             if (crashedNode.contains(nodeId))
                 continue;
 
-            Map<Integer, DataElement> storage = elem.getValue();
+            var storage = elem.getValue();
 
             var invalids = storage.keySet().stream().filter(key -> !isResponsabile(group, key, nodeId));
             var invalidList = invalids.toList();
@@ -92,10 +93,10 @@ public record StorageTester(Map<Integer, Map<Integer, DataElement>> nodesData) {
         // Contains key -> maxVersion, 3 contains values outside its responsability [2] count
         Map<Integer, Pair<Integer, Integer>> maxVersionPerKey = new HashMap<>();
 
-        for (Map<Integer, DataElement> storage : this.nodesData.values()) {
+        for (var storage : this.nodesData.values()) {
             for (var entry : storage.entrySet()) {
                 int key = entry.getKey();
-                int version = entry.getValue().getVersion();
+                int version = entry.getValue().version();
 
                 var max = maxVersionPerKey.get(key);
                 if (max == null || max.getLeft() < version)
@@ -124,14 +125,14 @@ public record StorageTester(Map<Integer, Map<Integer, DataElement>> nodesData) {
         int nLatest = 0;
         int maxVersion = -1;
         for (var nodeStorage : nodesData.values()) {
-            DataElement elem = nodeStorage.get(key);
+            SendableData.Debug elem = nodeStorage.get(key);
             if (elem == null)
                 continue;
 
-            if (maxVersion < elem.getVersion()) {
+            if (maxVersion < elem.version()) {
                 nLatest = 1;
-                maxVersion = elem.getVersion();
-            } else if (maxVersion <= elem.getVersion()) {
+                maxVersion = elem.version();
+            } else if (maxVersion <= elem.version()) {
                 nLatest++;
             }
 
@@ -145,7 +146,7 @@ public record StorageTester(Map<Integer, Map<Integer, DataElement>> nodesData) {
     public void assertMissing(int key) {
         for (var elem : this.nodesData.entrySet()) {
             int nodeId = elem.getKey();
-            Map<Integer, DataElement> storage = elem.getValue();
+            var storage = elem.getValue();
             assert !storage.containsKey(key) : "Node " + nodeId + "contains key " + key + " which should be missing";
         }
     }
@@ -158,7 +159,7 @@ public record StorageTester(Map<Integer, Map<Integer, DataElement>> nodesData) {
         out.println("STATUS OF KEY " + key + " is: ");
         for (var elem : this.nodesData.entrySet()) {
             int nodeId = elem.getKey();
-            Map<Integer, DataElement> storage = elem.getValue();
+            var storage = elem.getValue();
             out.println(" |- " + nodeId + " -> " + storage.get(key) + " ");
         }
         out.println();

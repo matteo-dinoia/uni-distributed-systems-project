@@ -13,7 +13,7 @@ import java.util.Set;
 public class TestParallelIO {
     @ClassRule
     public static final TestKitJunitResource testKit = new TestKitJunitResource();
-    
+
     private Map.Entry<Client, ClientOperation> read(Client client, int key, int nodeId) {
         ClientOperation op = ClientOperation.newRead(key, nodeId);
         return Map.entry(client, op);
@@ -24,6 +24,7 @@ public class TestParallelIO {
         return Map.entry(client, op);
     }
 
+    // TODO TEST
     @Test
     public void multipleWriteOnSame() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
