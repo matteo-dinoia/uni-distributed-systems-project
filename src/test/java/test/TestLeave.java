@@ -92,13 +92,31 @@ public class TestLeave {
 
             assert test.write(client, key, 2);
 
-            int version = client.getKeyLatestVersion(key);
+            int version = client.latestVersionOf(key);
 
             assert test.leave(2);
 
             var storages = test.getNodeStorages();
 
             storages.assertLatest(key, version);
+        }
+    }
+
+    @Test
+    public void leaveRollbackKeepsKeys() {
+        try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
+            final int key = 6;
+
+            test.crash(1);
+            assert test.write(null, key, 4);
+            test.crash(2);
+
+            assert !test.leave(4) : "Leave should fail due to timeout by triggering rollback";
+
+            var storages = test.getNodeStorages();
+            storages.printKeyStatus(key);
+            storages.assertValid();
+            storages.assertLatest(key, 0);
         }
     }
 }

@@ -13,18 +13,20 @@ import utils.Config;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 public class Leaving extends AbstractState {
     private final int reqId;
     private final HashMap<Integer, Integer> ackCounts = new HashMap<>();
     private final ActorRef<Message> mainActorRef;
+    private final Set<ActorRef<Message>> contactedNodes;
 
     private Leaving(Node node, ActorRef<Message> mainActorRef) {
         super(node);
         this.reqId = node.getFreshRequestId();
         this.mainActorRef = mainActorRef;
 
-        sendDataLeaving();
+        contactedNodes = sendDataLeaving();
         members.scheduleSendTimeoutToMyself(reqId);
     }
 
@@ -41,24 +43,26 @@ public class Leaving extends AbstractState {
         return NodeState.LEAVING;
     }
 
-    private void sendDataLeaving() {
-        HashMap<ActorRef<Message>, HashMap<Integer, SendableData>> new_responsability = new HashMap<>();
+    private Set<ActorRef<Message>> sendDataLeaving() {
+        HashMap<ActorRef<Message>, HashMap<Integer, SendableData>> newResponsability = new HashMap<>();
         for (Integer key : storage.getAllKeys()) {
             DataElement value = storage.get(key);
             List<ActorRef<Message>> newResponsibles = members.findNewResponsiblesFor(key);
 
             for (ActorRef<Message> target : newResponsibles) {
-                var list = new_responsability.computeIfAbsent(target, _ -> new HashMap<>());
+                var list = newResponsability.computeIfAbsent(target, _ -> new HashMap<>());
                 list.put(key, value.sendable());
             }
 
             ackCounts.put(key, 0);
         }
 
-        for (var target : new_responsability.keySet()) {
-            var list = new_responsability.get(target);
+        for (var target : newResponsability.keySet()) {
+            var list = newResponsability.get(target);
             members.sendTo(target, new NodeMsg.PassResponsabilityRequest(reqId, list));
         }
+
+        return newResponsability.keySet();
     }
 
     @Override
@@ -94,8 +98,7 @@ public class Leaving extends AbstractState {
     }
 
     private AbstractState rollbackLeave() {
-        // TODO Doesn't need to send to all
-        members.sendToAll(new NodeMsg.RollbackPassResponsability(reqId));
+        members.sendTo(contactedNodes.stream(), new NodeMsg.RollbackPassResponsability(reqId));
         members.sendTo(mainActorRef, new ControlMsg.LeaveAck(false));
         return new Normal(super.node);
     }
