@@ -2,12 +2,13 @@ package tester;
 
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import messages.Message;
+import node.SendableData;
 
 import java.util.HashMap;
 
 public class Client {
     /// Latest version seen of the given key element
-    private final HashMap<Integer, Integer> latestVersionSeen;
+    private final HashMap<Integer, SendableData> latestVersionSeen;
     private final TestProbe<Message> receiver;
 
     public Client(TestProbe<Message> receiver) {
@@ -19,14 +20,22 @@ public class Client {
         return receiver;
     }
 
-    public void setKeyLatestVersion(int key, int newVersion) {
-        Integer old = latestVersionSeen.computeIfAbsent(key, _ -> newVersion);
-        assert newVersion >= old : "Client consistency is broken";
+    public void setKeyLatestVersion(int key, SendableData newElem) {
+        SendableData old = latestVersionSeen.computeIfAbsent(key, _ -> newElem);
+        assert newElem.version() >= old.version() : "Client consistency is broken";
 
-        latestVersionSeen.put(key, newVersion);
+        assert newElem.version() != old.version() || newElem.value().equals(old.value()) : "Two same version with different value";
+
+        latestVersionSeen.put(key, newElem);
     }
 
-    public Integer getKeyLatestVersion(int key) {
-        return latestVersionSeen.get(key);
+    public Integer latestVersionOf(int key) {
+        SendableData data = latestVersionSeen.get(key);
+        return data == null ? null : data.version();
+    }
+
+    public String latestValueOf(int key) {
+        SendableData data = latestVersionSeen.get(key);
+        return data == null ? null : data.value();
     }
 }
