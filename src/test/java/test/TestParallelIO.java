@@ -33,6 +33,8 @@ public class TestParallelIO {
                     write(test.getClient(), 1, 4)
             ));
 
+            //assert !res.isEmpty();
+
             // Still valid
             var storages = test.getNodeStorages();
             storages.assertValid();

@@ -142,7 +142,6 @@ public class Tester implements AutoCloseable {
                 Integer lastVersion = client.getKeyLatestVersion(op.key());
                 send(client.getReceiver(), getNode(op.nodeId()), new DataMsg.Get(op.key(), lastVersion));
             } else {
-
                 send(client.getReceiver(), getNode(op.nodeId()), new DataMsg.Update(op.key(), op.newValue()));
             }
         }

@@ -129,7 +129,6 @@ public class MemberManager {
         return list;
     }
 
-    // TODO make more efficient
     public boolean willBeResponsible(Integer newNodeId, ActorRef<Message> newNode, Integer key) {
         assert !memberList.getHashMap().containsKey(newNodeId) : "Trying to join an already existing id";
         memberList.put(newNodeId, newNode);
