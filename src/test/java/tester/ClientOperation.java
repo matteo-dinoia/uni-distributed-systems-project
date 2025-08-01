@@ -3,6 +3,7 @@ package tester;
 import java.util.Random;
 
 public class ClientOperation {
+
     public enum OperationType {READ, WRITE}
 
     private final String value;
@@ -40,5 +41,15 @@ public class ClientOperation {
 
     public int nodeId() {
         return nodeId;
+    }
+
+    @Override
+    public String toString() {
+        return "ClientOperation{" +
+                "value='" + value + '\'' +
+                ", operation=" + operation +
+                ", key=" + key +
+                ", nodeId=" + nodeId +
+                '}';
     }
 }

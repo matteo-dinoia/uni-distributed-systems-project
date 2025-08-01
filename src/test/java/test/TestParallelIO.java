@@ -79,24 +79,57 @@ public class TestParallelIO {
     public void multipleReadOnExistent() {
         final int key = 2;
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
-            Client[] clients = {test.getClient(), test.getClient(), test.getClient()};
-            assert test.write(clients[0], key, 2);
-            String written = clients[0].latestValueOf(1);
+            assert test.write(test.getClient(0), key, 2);
+            String written = test.getClient(0).latestValueOf(1);
 
             var res = test.clientOperations(Map.ofEntries(
-                    read(clients[0], key, 2),
-                    read(clients[1], key, 3),
-                    read(clients[2], key, 4)
+                    read(test.getClient(0), key, 2),
+                    read(test.getClient(1), key, 3),
+                    read(test.getClient(1), key, 4)
             ));
 
             assert res.size() == 3;
-            assert clients[0].latestVersionOf(key) == 0;
-            assert clients[1].latestVersionOf(key) == 0;
-            assert clients[2].latestVersionOf(key) == 0;
+            assert test.getClient(0).latestVersionOf(key) == 0;
+            assert test.getClient(1).latestVersionOf(key) == 0;
+            assert test.getClient(2).latestVersionOf(key) == 0;
 
-            assert clients[0].latestValueOf(key).equals(written);
-            assert clients[1].latestValueOf(key).equals(written);
-            assert clients[2].latestValueOf(key).equals(written);
+            assert test.getClient(0).latestValueOf(key).equals(written);
+            assert test.getClient(1).latestValueOf(key).equals(written);
+            assert test.getClient(2).latestValueOf(key).equals(written);
+        }
+    }
+
+    @Test
+    public void multipleReadWrite() {
+        final int keyA = 2;
+        final int keyB = 3;
+        try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
+
+            var succ = test.clientOperations(Map.ofEntries(
+                    read(test.getClient(0), keyA, 2),
+                    write(test.getClient(3), keyA, 3),
+                    write(test.getClient(4), keyB, 5),
+                    read(test.getClient(1), keyA, 3),
+                    read(test.getClient(2), keyA, 1),
+                    read(test.getClient(7), keyB, 5),
+
+                    write(test.getClient(5), keyB, 4),
+                    write(test.getClient(6), keyB, 5),
+                    read(test.getClient(8), keyB, 2)
+            ));
+
+            // Read must succeed (possibly with yet no value)
+            assert succ.containsKey(test.getClient(0))
+                    && succ.containsKey(test.getClient(1))
+                    && succ.containsKey(test.getClient(2))
+                    && succ.containsKey(test.getClient(7))
+                    && succ.containsKey(test.getClient(8));
+
+            // The one writing alone on keyA must succeed (unless test is too slow)
+            assert succ.containsKey(test.getClient(3));
+
+            // Still consistent
+            test.getNodeStorages().assertValid();
         }
     }
 }

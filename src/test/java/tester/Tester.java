@@ -27,6 +27,7 @@ import static java.util.Map.entry;
 
 public class Tester implements AutoCloseable {
     private final ActorTestKit testKit;
+    private final HashMap<Integer, Client> clients = new HashMap<>();
     private final Ring<ActorRef<Message>> group = new Ring<>();
     private static final Duration TIMEOUT_PROBE = Config.TIMOUT_PROBE;
 
@@ -77,6 +78,11 @@ public class Tester implements AutoCloseable {
 
     public Client getClient() {
         return new Client(getProbe());
+    }
+
+    ///  Get client by id or create a new
+    public Client getClient(int clientId) {
+        return clients.computeIfAbsent(clientId, x -> new Client(testKit.createTestProbe(x + "named")));
     }
 
     // GET DEBUG INFO

@@ -38,4 +38,9 @@ public class Client {
         SendableData data = latestVersionSeen.get(key);
         return data == null ? null : data.value();
     }
+
+    @Override
+    public String toString() {
+        return "Client-" + receiver.getRef().path().name();
+    }
 }
