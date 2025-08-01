@@ -9,12 +9,9 @@ import node.Node;
 import node.NodeState;
 import node.SendableData;
 import utils.Config;
-import utils.Pair;
+import utils.Ring;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Implements node join in two phases:
@@ -22,19 +19,26 @@ import java.util.Set;
  * 2) RESPONSIBILITIES: request data for keys this node will now serve
  */
 public class Joining extends AbstractState {
-    private final ActorRef<Message> mainActorRef;
+    static class EditableInteger {
+        public int n;
+
+        public EditableInteger(int n) {
+            this.n = n;
+        }
+    }
+
+    private final static int IGNORABLE = -1;
 
     private enum JoinPhase {BOOTSTRAP, RESPONSIBILITIES}
 
+    private final ActorRef<Message> mainActorRef;
     private JoinPhase phase;
 
     // key: (data, how many replicas confirmed it)
-    private final HashMap<Integer, Pair<SendableData, Integer>> receivedData = new HashMap<>();
+    private final HashMap<Integer, SendableData> receivedData = new HashMap<>();
     private final Set<ActorRef<Message>> responded = new HashSet<>();
+    private final Ring<EditableInteger> agreement = new Ring<>();
     private final int reqId;
-
-    private Integer closestHigherResponded = null;
-    private Integer closestLowerResponded = null;
 
     /**
      * @param bootstrapPeer a live node to bootstrap membership from
@@ -61,21 +65,24 @@ public class Joining extends AbstractState {
         members.setMemberList(msg.updatedMembers());
         phase = JoinPhase.RESPONSIBILITIES;
 
-        members.sendTo2n(new NodeMsg.ResponsabilityRequest(reqId, members.getSelfId()));
+        List<ActorRef<Message>> toCommunicate = members.getNodeToCommunicateForJoin();
+        createAgreement(new HashSet<>(toCommunicate));
+
+        members.sendTo(toCommunicate.stream(), new NodeMsg.ResponsabilityRequest(reqId, members.getSelfId()));
         return keepSameState();
     }
 
-    @Override
-    protected AbstractState handleResponsabilityResponse(NodeMsg.ResponsabilityResponse msg) {
-        if (msg.requestId() != reqId || phase != JoinPhase.RESPONSIBILITIES)
-            return ignore();
+    private void createAgreement(Set<ActorRef<Message>> toCommunicate) {
+        for (var entry : members.getMemberList().entrySet()) {
+            int nodeId = entry.getKey();
+            ActorRef<Message> nodeRef = entry.getValue();
 
-        boolean enough_responded = addResponded(msg.senderId());
-        boolean enough_quorum = addData(msg.data());
+            int value = toCommunicate.contains(nodeRef) ? 0 : IGNORABLE;
+            agreement.put(nodeId, new EditableInteger(value));
+        }
 
-        if (enough_responded && enough_quorum)
-            return completeJoin();
-        return keepSameState();
+        // To have topology before the enter of the new node
+        agreement.remove(members.getSelfId());
     }
 
     @Override
@@ -87,49 +94,50 @@ public class Joining extends AbstractState {
         return new Initial(super.node);
     }
 
-    private boolean addResponded(int senderId) {
-        if (responded.contains(sender()))
-            return false;
+    @Override
+    protected AbstractState handleResponsabilityResponse(NodeMsg.ResponsabilityResponse msg) {
+        if (msg.requestId() != reqId || phase != JoinPhase.RESPONSIBILITIES)
+            return ignore();
 
+        addData(msg.senderId(), msg.data());
+
+        if (enoughResponded())
+            return completeJoin();
+        return keepSameState();
+    }
+
+    private boolean enoughResponded() {
+        return agreement.getHashMap().values().stream().allMatch(ei -> ei.n == IGNORABLE || ei.n >= Config.R);
+    }
+
+    private void addData(int senderId, Map<Integer, SendableData> dataList) {
+        if (responded.contains(sender()))
+            return;
         responded.add(sender());
 
-        int lower = members.closerLower(senderId, closestLowerResponded);
-        closestLowerResponded = lower;
-        int higher = members.closerHigher(senderId, closestHigherResponded);
-        closestHigherResponded = higher;
+        // Add new data
+        for (var entry : dataList.entrySet()) {
+            int key = entry.getKey();
 
-        int distance = members.size();
-        if (lower != higher)
-            distance = members.countMembersBetweenIncluded(lower, higher);
-        // Ignore myself because I'm loooking at topology before i entered
-        return distance - 1 <= Config.N;
-    }
+            SendableData other = entry.getValue();
+            SendableData existing = receivedData.get(key);
 
-    private boolean addData(Map<Integer, SendableData> dataList) {
-        for (var elem : dataList.entrySet()) {
-            int key = elem.getKey();
-            SendableData data = elem.getValue();
-
-            var pair = receivedData.computeIfAbsent(key, _ -> new Pair<>(data, 0));
-            pair.setRight(pair.getRight() + 1);
-            if (pair.getLeft().version() < data.version())
-                pair.setLeft(data);
+            if (existing == null || existing.version() < other.version())
+                receivedData.put(key, other);
         }
 
-        return hasSufficientReplicas();
-    }
-
-    private boolean hasSufficientReplicas() {
-        for (var pair : receivedData.values()) {
-            if (pair.getRight() < Config.R)
-                return false;
+        // Update agreement counter
+        var toIncrease = agreement.getInterval(senderId, Config.N - 1, Config.N - 1);
+        for (EditableInteger ei : toIncrease) {
+            if (ei.n != IGNORABLE)
+                ei.n++;
         }
-        return true;
+
     }
 
     private AbstractState completeJoin() {
         for (var entry : receivedData.entrySet())
-            storage.put(entry.getKey(), entry.getValue().getLeft());
+            storage.put(entry.getKey(), entry.getValue());
 
         members.sendToAll(new NotifyMsg.NodeJoined(members.getSelfId()));
         members.sendTo(mainActorRef, new ControlMsg.JoinAck(true));

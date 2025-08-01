@@ -100,11 +100,10 @@ public class MemberManager {
         sendTo(getResponsibleForData(key).stream(), msg);
     }
 
-    public void sendTo2n(Serializable msg) {
-        List<ActorRef<Message>> actors = memberList.getInterval(getSelfId(), Config.N, Config.N);
-        ArrayList<ActorRef<Message>> list = new ArrayList<>(actors);
+    public ArrayList<ActorRef<Message>> getNodeToCommunicateForJoin() {
+        var list = new ArrayList<>(memberList.getInterval(getSelfId(), Config.N - 1, Config.N - 1));
         list.remove(getSelfRef());
-        sendTo(list.stream(), msg);
+        return list;
     }
 
     // DATA RESPONSABILITY

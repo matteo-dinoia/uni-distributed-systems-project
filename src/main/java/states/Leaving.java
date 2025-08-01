@@ -94,6 +94,7 @@ public class Leaving extends AbstractState {
     }
 
     private AbstractState rollbackLeave() {
+        // TODO Doesn't need to send to all
         members.sendToAll(new NodeMsg.RollbackPassResponsability(reqId));
         members.sendTo(mainActorRef, new ControlMsg.LeaveAck(false));
         return new Normal(super.node);
