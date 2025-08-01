@@ -36,8 +36,8 @@ public abstract class AbstractState {
     }
 
     @SuppressWarnings("SameReturnValue")
-    protected AbstractState panic() {
-        System.err.println("[FATAL] Something catastrofic happened");
+    protected AbstractState panic(String msg) {
+        System.err.println("[FATAL] " + msg);
         return null;
     }
 
@@ -76,12 +76,16 @@ public abstract class AbstractState {
         if (getNodeRepresentation() != NodeState.SUB)
             Utils.debugPrint("==> NODE " + members.getSelfId() + " (" + getNodeRepresentation() + ") RECEIVED from " + sender().path().name() + " " + message.toString());
 
-        return switch (message) {
-            // ───────────── Debug (not overwritable) ─────────────
-            case ControlMsg.DebugCurrentStateRequest msg -> handleDebugCurrentStateRequest(msg);
-            case ControlMsg.DebugCurrentStorageRequest msg -> handleDebugCurrentStorageRequest(msg);
-            default -> this.handle(message);
-        };
+        try {
+            return switch (message) {
+                // ───────────── Debug (not overwritable) ─────────────
+                case ControlMsg.DebugCurrentStateRequest msg -> handleDebugCurrentStateRequest(msg);
+                case ControlMsg.DebugCurrentStorageRequest msg -> handleDebugCurrentStorageRequest(msg);
+                default -> this.handle(message);
+            };
+        } catch (RuntimeException | AssertionError e) {
+            return panic(e.getMessage());
+        }
     }
 
     // Overriding this ignore all default handler

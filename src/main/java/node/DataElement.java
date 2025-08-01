@@ -7,31 +7,30 @@ import utils.Pair;
 import java.io.Serializable;
 
 public class DataElement implements Serializable {
-    private Pair<ActorRef<Message>, Integer> lockHolder;
-
-    private enum LockStatus {FREE, WRITE_LOCKED, READ_WRITE_LOCKED}
+    public enum LockStatus {FREE, WRITE_LOCKED, READ_WRITE_LOCKED}
 
     private String value;
     private int version;
     private LockStatus lockStatus;
+    private Pair<ActorRef<Message>, Integer> lockHolder;
 
     public DataElement() {
-        this.value = null;
-        this.version = -1;
+        this(null, -1);
+    }
+
+    public DataElement(String value, int version) {
+        this.value = value;
+        this.version = version;
         this.lockStatus = LockStatus.FREE;
         this.lockHolder = null;
     }
 
-    private DataElement(DataElement toCopy) {
-        this.value = toCopy.value;
-        this.version = toCopy.version;
-        this.lockStatus = toCopy.lockStatus;
-        this.lockHolder = toCopy.lockHolder;
+    public SendableData sendable() {
+        return new SendableData(this.value, this.version);
     }
 
-    @SuppressWarnings("MethodDoesntCallSuperMethod")
-    public DataElement clone() {
-        return new DataElement(this);
+    public SendableData.Debug debugSendable() {
+        return new SendableData.Debug(this.value, this.version, this.lockStatus);
     }
 
     /**
@@ -115,4 +114,5 @@ public class DataElement implements Serializable {
                 ", handler=" + this.lockHolder +
                 '}';
     }
+
 }

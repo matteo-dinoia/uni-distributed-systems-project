@@ -24,8 +24,12 @@ public class DataStorage {
         }
     }
 
-    public void put(int key, DataElement element) {
-        data.put(key, element);
+    public void put(int key, SendableData element) {
+        data.put(key, new DataElement(element.value(), element.version()));
+    }
+
+    public DataElement getOrInsertEmpty(int key) {
+        return data.computeIfAbsent(key, k -> new DataElement());
     }
 
     public DataElement get(int key) {
@@ -42,12 +46,15 @@ public class DataStorage {
             data.remove(key);
     }
 
-    public void putAll(Map<Integer, DataElement> toInsert) {
-        for (var elem : toInsert.entrySet()) {
-            assert elem.getKey() != null : "Inserting a null key";
-            put(elem.getKey(), elem.getValue().clone());
-        }
+    public void refreshIfNeeded(Map<Integer, SendableData> toInsertList) {
+        for (var elem : toInsertList.entrySet()) {
+            DataElement existing = getOrInsertEmpty(elem.getKey());
+            SendableData other = elem.getValue();
+            assert other != null : "Someone passed me a null value!";
 
+            if (existing.getVersion() < other.version())
+                existing.updateValue(other.value(), other.version());
+        }
     }
 
     public void removeNotUnderMyControl(MemberManager members) {
@@ -61,6 +68,13 @@ public class DataStorage {
     }
 
     public ControlMsg.DebugCurrentStorageResponse getDebugInfoMsg(int selfId) {
-        return new ControlMsg.DebugCurrentStorageResponse(selfId, data);
+        HashMap<Integer, SendableData.Debug> toSend = new HashMap<>();
+        for (var entry : data.entrySet()) {
+            DataElement elem = entry.getValue();
+            toSend.put(entry.getKey(), elem.debugSendable());
+        }
+
+
+        return new ControlMsg.DebugCurrentStorageResponse(selfId, toSend);
     }
 }

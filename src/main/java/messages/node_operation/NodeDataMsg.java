@@ -1,6 +1,6 @@
 package messages.node_operation;
 
-import node.DataElement;
+import node.SendableData;
 
 import java.io.Serializable;
 
@@ -10,11 +10,7 @@ public class NodeDataMsg {
     public record ReadRequest(int requestId, int key) implements Serializable {
     }
 
-    public record ReadResponse(int requestId, DataElement element) implements Serializable {
-        public ReadResponse(int requestId, DataElement element) {
-            this.requestId = requestId;
-            this.element = element.clone();
-        }
+    public record ReadResponse(int requestId, int key, SendableData element) implements Serializable {
     }
 
     public record ReadImpossibleForLock(int requestId) implements Serializable {

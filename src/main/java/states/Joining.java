@@ -5,9 +5,9 @@ import messages.Message;
 import messages.control.ControlMsg;
 import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
-import node.DataElement;
 import node.Node;
 import node.NodeState;
+import node.SendableData;
 import utils.Config;
 import utils.Pair;
 
@@ -29,7 +29,7 @@ public class Joining extends AbstractState {
     private JoinPhase phase;
 
     // key: (data, how many replicas confirmed it)
-    private final HashMap<Integer, Pair<DataElement, Integer>> receivedData = new HashMap<>();
+    private final HashMap<Integer, Pair<SendableData, Integer>> receivedData = new HashMap<>();
     private final Set<ActorRef<Message>> responded = new HashSet<>();
     private final int reqId;
 
@@ -105,22 +105,22 @@ public class Joining extends AbstractState {
         return distance - 1 <= Config.N;
     }
 
-    private boolean addData(Map<Integer, DataElement> data) {
-        for (var entry : data.entrySet()) {
-            int key = entry.getKey();
-            DataElement new_value = entry.getValue();
+    private boolean addData(Map<Integer, SendableData> dataList) {
+        for (var elem : dataList.entrySet()) {
+            int key = elem.getKey();
+            SendableData data = elem.getValue();
 
-            Pair<DataElement, Integer> pair = receivedData.computeIfAbsent(key, _ -> new Pair<>(new_value, 0));
+            var pair = receivedData.computeIfAbsent(key, _ -> new Pair<>(data, 0));
             pair.setRight(pair.getRight() + 1);
-            if (pair.getLeft().getVersion() < new_value.getVersion())
-                pair.setLeft(new_value);
+            if (pair.getLeft().version() < data.version())
+                pair.setLeft(data);
         }
 
         return hasSufficientReplicas();
     }
 
     private boolean hasSufficientReplicas() {
-        for (Pair<DataElement, Integer> pair : receivedData.values()) {
+        for (var pair : receivedData.values()) {
             if (pair.getRight() < Config.R)
                 return false;
         }

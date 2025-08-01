@@ -8,6 +8,7 @@ import messages.node_operation.NotifyMsg;
 import node.DataElement;
 import node.Node;
 import node.NodeState;
+import node.SendableData;
 import utils.Config;
 
 import java.util.HashMap;
@@ -41,14 +42,14 @@ public class Leaving extends AbstractState {
     }
 
     private void sendDataLeaving() {
-        HashMap<ActorRef<Message>, HashMap<Integer, DataElement>> new_responsability = new HashMap<>();
+        HashMap<ActorRef<Message>, HashMap<Integer, SendableData>> new_responsability = new HashMap<>();
         for (Integer key : storage.getAllKeys()) {
             DataElement value = storage.get(key);
             List<ActorRef<Message>> newResponsibles = members.findNewResponsiblesFor(key);
 
             for (ActorRef<Message> target : newResponsibles) {
-                var set = new_responsability.computeIfAbsent(target, _ -> new HashMap<>());
-                set.put(key, value);
+                var list = new_responsability.computeIfAbsent(target, _ -> new HashMap<>());
+                list.put(key, value.sendable());
             }
 
             ackCounts.put(key, 0);
