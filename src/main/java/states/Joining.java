@@ -19,15 +19,18 @@ import java.util.*;
  * 2) RESPONSIBILITIES: request data for keys this node will now serve
  */
 public class Joining extends AbstractState {
-    static class EditableInteger {
-        public int n;
+    static class EditableBoolean {
+        public boolean valid;
 
-        public EditableInteger(int n) {
-            this.n = n;
+        public EditableBoolean(boolean valid) {
+            this.valid = valid;
+        }
+
+        @Override
+        public String toString() {
+            return "" + this.valid;
         }
     }
-
-    private final static int IGNORABLE = -1;
 
     private enum JoinPhase {BOOTSTRAP, RESPONSIBILITIES}
 
@@ -36,8 +39,7 @@ public class Joining extends AbstractState {
 
     // key: (data, how many replicas confirmed it)
     private final HashMap<Integer, SendableData> receivedData = new HashMap<>();
-    private final Set<ActorRef<Message>> responded = new HashSet<>();
-    private final Ring<EditableInteger> agreement = new Ring<>();
+    private final Ring<EditableBoolean> responded = new Ring<>();
     private final int reqId;
 
     /**
@@ -66,23 +68,20 @@ public class Joining extends AbstractState {
         phase = JoinPhase.RESPONSIBILITIES;
 
         List<ActorRef<Message>> toCommunicate = members.getNodeToCommunicateForJoin();
-        createAgreement(new HashSet<>(toCommunicate));
+        createResponded(msg.updatedMembers(), new HashSet<>(toCommunicate));
 
         members.sendTo(toCommunicate.stream(), new NodeMsg.ResponsabilityRequest(reqId, members.getSelfId()));
         return keepSameState();
     }
 
-    private void createAgreement(Set<ActorRef<Message>> toCommunicate) {
-        for (var entry : members.getMemberList().entrySet()) {
-            int nodeId = entry.getKey();
-            ActorRef<Message> nodeRef = entry.getValue();
-
-            int value = toCommunicate.contains(nodeRef) ? 0 : IGNORABLE;
-            agreement.put(nodeId, new EditableInteger(value));
+    private void createResponded(Map<Integer, ActorRef<Message>> otherNodes, Set<ActorRef<Message>> toCommunicate) {
+        HashMap<Integer, EditableBoolean> map = new HashMap<>();
+        for (var entry : otherNodes.entrySet()) {
+            boolean communicate = toCommunicate.contains(entry.getValue());
+            map.put(entry.getKey(), new EditableBoolean(!communicate));
         }
 
-        // To have topology before the enter of the new node
-        agreement.remove(members.getSelfId());
+        responded.replaceAll(map);
     }
 
     @Override
@@ -101,19 +100,24 @@ public class Joining extends AbstractState {
 
         addData(msg.senderId(), msg.data());
 
-        if (enoughResponded())
+        if (enoughResponded()) {
+            System.err.println(responded.getHashMap());
             return completeJoin();
+        }
+
+
         return keepSameState();
     }
 
     private boolean enoughResponded() {
-        return agreement.getHashMap().values().stream().allMatch(ei -> ei.n == IGNORABLE || ei.n >= Config.R);
+        return responded.verifyNValidInMSizedWindows(Config.R, Config.N, x -> x.valid);
     }
 
     private void addData(int senderId, Map<Integer, SendableData> dataList) {
-        if (responded.contains(sender()))
+        var eb = responded.get(senderId);
+        if (eb.valid)
             return;
-        responded.add(sender());
+        eb.valid = true;
 
         // Add new data
         for (var entry : dataList.entrySet()) {
@@ -125,14 +129,6 @@ public class Joining extends AbstractState {
             if (existing == null || existing.version() < other.version())
                 receivedData.put(key, other);
         }
-
-        // Update agreement counter
-        var toIncrease = agreement.getInterval(senderId, Config.N - 1, Config.N - 1);
-        for (EditableInteger ei : toIncrease) {
-            if (ei.n != IGNORABLE)
-                ei.n++;
-        }
-
     }
 
     private AbstractState completeJoin() {

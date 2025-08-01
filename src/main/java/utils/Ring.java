@@ -1,6 +1,7 @@
 package utils;
 
 import java.util.*;
+import java.util.function.Predicate;
 
 
 public class Ring<T> {
@@ -125,6 +126,24 @@ public class Ring<T> {
         res.addAll(getPartialInterval(startPoint, rightSize, true));
 
         return res.stream().distinct().toList();
+    }
+
+    public boolean verifyNValidInMSizedWindows(int nValid, int mSizeWindows, Predicate<T> isValidOnSingleNode) {
+        if (nValid > mSizeWindows || size() == 0)
+            return false;
+
+        RingNode<T> curr = ring.firstEntry().getValue();
+
+        for (int i = 0; i < ring.size(); i++) {
+            List<T> list = getPartialInterval(curr.left, mSizeWindows, true);
+            long count = list.stream().filter(isValidOnSingleNode).count();
+            if (count < nValid)
+                return false;
+
+            curr = curr.right;
+        }
+
+        return true;
     }
 
     /// Not inclusive
