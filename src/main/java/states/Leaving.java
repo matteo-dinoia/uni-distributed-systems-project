@@ -64,14 +64,11 @@ public class Leaving extends AbstractState {
     protected AbstractState handlePassResponsabilityResponse(NodeMsg.PassResponsabilityResponse msg) {
         if (msg.requestId() != reqId) return ignore();
 
-        for (Integer key : msg.keys()) {
+        for (Integer key : msg.keys())
             ackCounts.put(key, ackCounts.get(key) + 1);
-        }
 
-        if (allKeysConfirmed()) {
+        if (allKeysConfirmed())
             return concludeLeave();
-        }
-
         return keepSameState();
     }
 
@@ -83,7 +80,8 @@ public class Leaving extends AbstractState {
     }
 
     private boolean allKeysConfirmed() {
-        return ackCounts.values().stream().allMatch(count -> count >= Config.W);
+        return ackCounts.values().stream()
+                .allMatch(count -> count >= Config.W);
     }
 
     private AbstractState concludeLeave() {
