@@ -54,4 +54,29 @@ public class TestParallelIO {
             assert res.size() == 3;
         }
     }
+
+    @Test
+    public void multipleReadOnExistent() {
+        final int key = 1;
+        try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
+            Client[] clients = {test.getClient(), test.getClient(), test.getClient()};
+            assert test.write(clients[0], key, 2);
+            String written = clients[0].latestValueOf(1);
+
+            var res = test.clientOperations(Map.ofEntries(
+                    read(clients[0], key, 2),
+                    read(clients[1], key, 3),
+                    read(clients[2], key, 4)
+            ));
+
+            assert res.size() == 3;
+            assert clients[0].latestVersionOf(key) == 0;
+            assert clients[1].latestVersionOf(key) == 0;
+            assert clients[2].latestVersionOf(key) == 0;
+
+            assert clients[0].latestValueOf(key).equals(written);
+            assert clients[1].latestValueOf(key).equals(written);
+            assert clients[2].latestValueOf(key).equals(written);
+        }
+    }
 }
