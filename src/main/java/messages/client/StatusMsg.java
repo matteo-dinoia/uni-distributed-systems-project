@@ -4,6 +4,7 @@ import akka.actor.typed.ActorRef;
 import messages.Message;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.Map;
 
 public abstract class StatusMsg {
@@ -21,5 +22,8 @@ public abstract class StatusMsg {
 
     // Skip from initial state to alive state (ignoring joining as all are joining at same time)
     public record InitialMembers(Map<Integer, ActorRef<Message>> initial) implements Serializable {
+        public InitialMembers(Map<Integer, ActorRef<Message>> initial) {
+            this.initial = Collections.unmodifiableMap(initial);
+        }
     }
 }

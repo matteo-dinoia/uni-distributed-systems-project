@@ -13,6 +13,7 @@ import utils.Pair;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -60,7 +61,7 @@ public class Joining extends AbstractState {
         members.setMemberList(msg.updatedMembers());
         phase = JoinPhase.RESPONSIBILITIES;
 
-        members.sendTo2n(new NodeMsg.ResponsabilityRequest(reqId, members.getSelfRef()));
+        members.sendTo2n(new NodeMsg.ResponsabilityRequest(reqId, members.getSelfId()));
         return keepSameState();
     }
 
@@ -92,12 +93,19 @@ public class Joining extends AbstractState {
 
         responded.add(sender());
 
-        closestLowerResponded = members.closerLower(senderId, closestLowerResponded);
-        closestHigherResponded = members.closerHigher(senderId, closestHigherResponded);
-        return members.countMembersBetweenIncluded(closestLowerResponded, closestHigherResponded) <= Config.N;
+        int lower = members.closerLower(senderId, closestLowerResponded);
+        closestLowerResponded = lower;
+        int higher = members.closerHigher(senderId, closestHigherResponded);
+        closestHigherResponded = higher;
+
+        int distance = members.size();
+        if (lower != higher)
+            distance = members.countMembersBetweenIncluded(lower, higher);
+        // Ignore myself because I'm loooking at topology before i entered
+        return distance - 1 <= Config.N;
     }
 
-    private boolean addData(HashMap<Integer, DataElement> data) {
+    private boolean addData(Map<Integer, DataElement> data) {
         for (var entry : data.entrySet()) {
             int key = entry.getKey();
             DataElement new_value = entry.getValue();
@@ -123,7 +131,7 @@ public class Joining extends AbstractState {
         for (var entry : receivedData.entrySet())
             storage.put(entry.getKey(), entry.getValue().getLeft());
 
-        members.sendToAll(new NotifyMsg.NodeJoined(members.getSelfId(), members.getSelfRef()));
+        members.sendToAll(new NotifyMsg.NodeJoined(members.getSelfId()));
         members.sendTo(mainActorRef, new ControlMsg.JoinAck(true));
         return new Normal(super.node);
     }

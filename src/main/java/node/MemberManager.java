@@ -6,6 +6,7 @@ import messages.Message;
 import messages.node_operation.NodeMsg;
 import utils.Config;
 import utils.Ring;
+import utils.Utils;
 
 import java.io.Serializable;
 import java.util.*;
@@ -28,7 +29,7 @@ public class MemberManager {
         this.context = context;
     }
 
-    public void setMemberList(HashMap<Integer, ActorRef<Message>> members) {
+    public void setMemberList(Map<Integer, ActorRef<Message>> members) {
         this.memberList.replaceAll(members);
         if (!members.containsKey(this.selfId))
             this.memberList.put(this.selfId, this.selfRef);
@@ -78,13 +79,13 @@ public class MemberManager {
         }
 
         // It is allowed sending to himself
-        System.out.println("<== NODE " + this.getSelfId() + " SENT TO '" + dest.path().name() + "' " + msg.toString());
+        Utils.debugPrint("<== NODE " + this.getSelfId() + " SENT TO '" + dest.path().name() + "' " + msg.toString());
         dest.tell(new Message(this.selfRef, msg));
     }
 
     public void scheduleSendTimeoutToMyself(int operationId) {
         var timeoutMsg = new Message(this.selfRef, new NodeMsg.Timeout(operationId));
-        System.out.println("<~~ NODE " + this.getSelfId() + " scheduled a timeout for operation " + operationId);
+        Utils.debugPrint("<~~ NODE " + this.getSelfId() + " scheduled a timeout for operation " + operationId);
 
         context.getSystem().scheduler().scheduleOnce(
                 Config.TIMEOUT,
@@ -101,12 +102,14 @@ public class MemberManager {
 
     public void sendTo2n(Serializable msg) {
         List<ActorRef<Message>> actors = memberList.getInterval(getSelfId(), Config.N, Config.N);
-        sendTo(actors.stream(), msg);
+        ArrayList<ActorRef<Message>> list = new ArrayList<>(actors);
+        list.remove(getSelfRef());
+        sendTo(list.stream(), msg);
     }
 
     // DATA RESPONSABILITY
 
-    private List<ActorRef<Message>> getResponsibleForData(int key) {
+    public List<ActorRef<Message>> getResponsibleForData(int key) {
         Integer firstResponsible = memberList.getCeilKey(key);
         assert firstResponsible != null;
         var res = memberList.getInterval(firstResponsible, 0, Config.N - 1);
@@ -119,12 +122,21 @@ public class MemberManager {
         Integer firstResponsible = memberList.getFloorKey(key);
         assert firstResponsible != null;
 
-        ArrayList<ActorRef<Message>> list = new ArrayList<>(memberList.getInterval(firstResponsible, 0, Config.N + 1));
-        list.remove(getSelfId());
+        ArrayList<ActorRef<Message>> list = new ArrayList<>(memberList.getInterval(firstResponsible, 0, Config.N));
+        list.remove(getSelfRef());
 
         if (list.size() < Config.N)
             return null;
         return list;
+    }
+
+    // TODO make more efficient
+    public boolean willBeResponsible(Integer newNodeId, ActorRef<Message> newNode, Integer key) {
+        assert !memberList.getHashMap().containsKey(newNodeId) : "Trying to join an already existing id";
+        memberList.put(newNodeId, newNode);
+        boolean res = isResponsible(newNode, key);
+        memberList.remove(newNodeId);
+        return res;
     }
 
     public boolean isResponsible(ActorRef<Message> actor, int key) {
@@ -133,29 +145,22 @@ public class MemberManager {
 
     // COMPUTING DISTANCES
 
-
-    public Integer closerLower(Integer keyA, Integer keyB) {
-        if (keyA == null)
-            return keyB;
+    public int closerLower(int keyA, Integer keyB) {
         if (keyB == null)
             return keyA;
 
-        if (memberList.circularDistance(keyA, selfId) < memberList.circularDistance(keyB, selfId))
-            return keyA;
-        else
-            return keyB;
+        int distA = memberList.circularDistance(keyA, selfId);
+        int distB = memberList.circularDistance(keyB, selfId);
+        return distA < distB ? keyA : keyB;
     }
 
-    public Integer closerHigher(Integer keyA, Integer keyB) {
-        if (keyA == null)
-            return keyB;
+    public int closerHigher(int keyA, Integer keyB) {
         if (keyB == null)
             return keyA;
 
-        if (memberList.circularDistance(selfId, keyA) < memberList.circularDistance(selfId, keyB))
-            return keyA;
-        else
-            return keyB;
+        int distA = memberList.circularDistance(selfId, keyA);
+        int distB = memberList.circularDistance(selfId, keyB);
+        return distA < distB ? keyA : keyB;
     }
 
     public int countMembersBetweenIncluded(int lower, int higher) {
@@ -166,4 +171,6 @@ public class MemberManager {
     public int size() {
         return memberList.size();
     }
+
+
 }

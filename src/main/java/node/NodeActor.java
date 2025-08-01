@@ -8,6 +8,7 @@ import akka.actor.typed.javadsl.Receive;
 import messages.Message;
 import states.AbstractState;
 import states.Initial;
+import utils.Utils;
 
 public class NodeActor extends AbstractBehavior<Message> {
     private AbstractState state;
@@ -44,7 +45,7 @@ public class NodeActor extends AbstractBehavior<Message> {
         }
 
         if (curr != next)
-            System.out.println(" •  STATE CHANGED in node " + node.members().getSelfId() +
+            Utils.debugPrint(" •  STATE CHANGED in node " + node.members().getSelfId() +
                     " from " + curr + " to " + next);
 
         this.state = nextState;

@@ -1,5 +1,7 @@
 package node;
 
+import messages.control.ControlMsg;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -40,10 +42,10 @@ public class DataStorage {
             data.remove(key);
     }
 
-    public void putAll(HashMap<Integer, DataElement> toInsert) {
+    public void putAll(Map<Integer, DataElement> toInsert) {
         for (var elem : toInsert.entrySet()) {
             assert elem.getKey() != null : "Inserting a null key";
-            put(elem.getKey(), elem.getValue());
+            put(elem.getKey(), elem.getValue().clone());
         }
 
     }
@@ -58,10 +60,7 @@ public class DataStorage {
 
     }
 
-    public Map<Integer, DataElement> getCopyOfData() {
-        HashMap<Integer, DataElement> copy = new HashMap<>();
-        for (var entry : this.data.entrySet())
-            copy.put(entry.getKey(), new DataElement(entry.getValue()));
-        return copy;
+    public ControlMsg.DebugCurrentStorageResponse getDebugInfoMsg(int selfId) {
+        return new ControlMsg.DebugCurrentStorageResponse(selfId, data);
     }
 }

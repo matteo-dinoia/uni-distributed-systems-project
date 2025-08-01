@@ -87,7 +87,7 @@ public class Leaving extends AbstractState {
     }
 
     private AbstractState concludeLeave() {
-        members.sendToAll(new NotifyMsg.NodeLeft(members.getSelfId(), members.getSelfRef()));
+        members.sendToAll(new NotifyMsg.NodeLeft(members.getSelfId()));
         members.sendTo(mainActorRef, new ControlMsg.LeaveAck(true));
         return new Left(node);
     }

@@ -37,6 +37,7 @@ public class Tester implements AutoCloseable {
             throw new RuntimeException("Cannot initialize because too little nodes");
 
         initializeMembers(initialNodes);
+
         System.out.println();
     }
 
@@ -47,7 +48,6 @@ public class Tester implements AutoCloseable {
         TestProbe<Message> probe = getProbe();
         for (ActorRef<Message> node : group.getHashMap().values())
             send(probe, node, new StatusMsg.InitialMembers(group.getHashMap()));
-
 
         for (int i = 0; i < group.size(); i++) {
             Serializable content = probe.receiveMessage(TIMEOUT_PROBE).content();
@@ -153,6 +153,7 @@ public class Tester implements AutoCloseable {
 
             Serializable content = client.getReceiver().receiveMessage(TIMEOUT_PROBE).content();
 
+            boolean succWrite = false;
             switch (content) {
                 case ResponseMsgs.ReadSucceeded msg -> {
                     assert isRead : "Unexpected Message received";
@@ -173,6 +174,7 @@ public class Tester implements AutoCloseable {
                     assert !isRead : "Unexpected Message received";
                     client.setKeyLatestVersion(msg.key(), msg.newVersion());
                     successfulOp.put(client, operation);
+                    succWrite = true;
                 }
                 case ResponseMsgs.WriteTimeout _ -> {
                     assert !isRead : "Unexpected Message received";
@@ -180,7 +182,7 @@ public class Tester implements AutoCloseable {
                 default -> throw new RuntimeException("Unexpected Message received");
             }
 
-            if (!isRead)
+            if (succWrite)
                 client.getReceiver().expectMessage(TIMEOUT_PROBE, new Message(getNode(nodeId), new ControlMsg.WriteFullyCompleted()));
         }
 
@@ -232,7 +234,7 @@ public class Tester implements AutoCloseable {
         ActorRef<Message> node = getNode(nodeId);
         TestProbe<Message> probe = getProbe();
 
-        Integer leftKey = group.getCeilKey(nodeId - 1);
+        Integer leftKey = group.getFloorKey(nodeId - 1);
         ActorRef<Message> bootstrapNode = getNode(leftKey);
 
         send(probe, node, new StatusMsg.Recover(bootstrapNode));
