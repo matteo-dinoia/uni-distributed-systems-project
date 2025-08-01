@@ -69,11 +69,8 @@ public class DataStorage {
 
     public ControlMsg.DebugCurrentStorageResponse getDebugInfoMsg(int selfId) {
         HashMap<Integer, SendableData.Debug> toSend = new HashMap<>();
-        for (var entry : data.entrySet()) {
-            DataElement elem = entry.getValue();
-            toSend.put(entry.getKey(), elem.debugSendable());
-        }
-
+        for (var entry : data.entrySet())
+            toSend.put(entry.getKey(), entry.getValue().debugSendable());
 
         return new ControlMsg.DebugCurrentStorageResponse(selfId, toSend);
     }
