@@ -4,7 +4,6 @@ import akka.actor.typed.ActorRef;
 import akka.actor.typed.javadsl.ActorContext;
 import messages.Message;
 import messages.node_operation.NodeMsg;
-import org.apache.commons.lang3.SerializationUtils;
 import utils.Config;
 import utils.Ring;
 import utils.Utils;
@@ -81,7 +80,7 @@ public class MemberManager {
 
         // It is allowed sending to himself
         Utils.debugPrint("<== NODE " + this.getSelfId() + " SENT TO '" + dest.path().name() + "' " + msg.toString());
-        dest.tell(new Message(this.selfRef, SerializationUtils.clone(msg)));
+        dest.tell(new Message(this.selfRef, msg));
     }
 
     public void scheduleSendTimeoutToMyself(int operationId) {
