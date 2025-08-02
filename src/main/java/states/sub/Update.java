@@ -25,6 +25,7 @@ public class Update extends AbstractState {
     private final int requestId;
     private final int key;
     private final String newValue;
+    private final Integer clientLastVersionSeen;
     private final ActorRef<Message> client;
     private Phase phase;
     // Phase 1: track which replicas granted or denied write locks
@@ -43,6 +44,7 @@ public class Update extends AbstractState {
         this.client = client;
         this.key = msg.key();
         this.newValue = msg.newValue();
+        this.clientLastVersionSeen = msg.lastVersionSeen();
         this.phase = Phase.WRITE_LOCK;
         initiateReadLockPhase();
     }
@@ -92,7 +94,9 @@ public class Update extends AbstractState {
             phase = Phase.READ_LOCK;
             newVer = lastVersionSeen + 1;
 
-            // respond to the client with the write result
+            // respond to the client with the write result (abort if the version is older)
+            if (this.clientLastVersionSeen != null && newVer < this.clientLastVersionSeen)
+                abortOperation();
             node.sendTo(client, new ResponseMsgs.WriteSucceeded(key, newValue, newVer));
 
             // send the write request only to replicas that granted the lock

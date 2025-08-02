@@ -31,7 +31,7 @@ public class Get extends AbstractState {
         this.requestId = requestId;
         this.client = client;
         this.key = msg.key();
-        this.lastVersionSeen = msg.last_version_seen();
+        this.lastVersionSeen = msg.lastVersionSeen();
 
         handleInitialMsg(msg);
     }

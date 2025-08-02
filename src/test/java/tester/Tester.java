@@ -143,13 +143,12 @@ public class Tester implements AutoCloseable {
         for (var operation : operations.entrySet()) {
             Client client = operation.getKey();
             ClientOperation op = operation.getValue();
+            Integer lastVersion = client.latestVersionOf(op.key());
 
-            if (op.isRead()) {
-                Integer lastVersion = client.latestVersionOf(op.key());
+            if (op.isRead())
                 send(client.getReceiver(), getNode(op.nodeId()), new DataMsg.Get(op.key(), lastVersion));
-            } else {
-                send(client.getReceiver(), getNode(op.nodeId()), new DataMsg.Update(op.key(), op.newValue()));
-            }
+            else
+                send(client.getReceiver(), getNode(op.nodeId()), new DataMsg.Update(op.key(), lastVersion, op.newValue()));
         }
 
 
