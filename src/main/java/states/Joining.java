@@ -100,11 +100,8 @@ public class Joining extends AbstractState {
 
         addData(msg.senderId(), msg.data());
 
-        if (enoughResponded()) {
-            System.err.println(responded.getHashMap());
+        if (enoughResponded())
             return completeJoin();
-        }
-
 
         return keepSameState();
     }

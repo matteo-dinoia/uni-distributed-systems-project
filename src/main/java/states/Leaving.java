@@ -75,7 +75,7 @@ public class Leaving extends AbstractState {
 
         if (allKeysConfirmed())
             return concludeLeave();
-        
+
         return keepSameState();
     }
 

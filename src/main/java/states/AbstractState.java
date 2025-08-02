@@ -63,18 +63,15 @@ public abstract class AbstractState {
         return this.sender;
     }
 
-    private void overwriteSender(ActorRef<Message> sender) {
-        this.sender = sender;
-    }
-
     public abstract NodeState getNodeRepresentation();
 
     // DISPATCHER  ---------------------------------------------------------------------
 
     public final AbstractState handle(ActorRef<Message> sender, Serializable message) {
-        overwriteSender(sender);
+        this.sender = sender;
+
         if (getNodeRepresentation() != NodeState.SUB)
-            Utils.debugPrint("==> NODE " + node.id() + " (" + getNodeRepresentation() + ") RECEIVED from " + sender().path().name() + " " + message.toString());
+            Utils.debugPrint("==> NODE " + node.id() + " (" + getNodeRepresentation() + ") RECEIVED from " + sender().path().name() + " " + message);
 
         try {
             return switch (message) {
@@ -90,8 +87,6 @@ public abstract class AbstractState {
 
     // Overriding this ignore all default handler
     protected AbstractState handle(Serializable message) {
-
-
         return switch (message) {
             // ───────────── Join ─────────────
             case StatusMsg.Join msg -> handleJoin(msg);
