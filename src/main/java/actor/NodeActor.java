@@ -9,20 +9,21 @@ import akka.actor.typed.javadsl.Receive;
 import messages.Message;
 import states.AbstractState;
 import states.Initial;
+import utils.Config;
 import utils.Utils;
 
 public class NodeActor extends AbstractBehavior<Message> {
     private AbstractState state;
     private final Node node;
 
-    public NodeActor(ActorContext<Message> context, int nodeId) {
+    public NodeActor(ActorContext<Message> context, int nodeId, Config config) {
         super(context);
-        this.node = new Node(nodeId, context);
+        this.node = new Node(nodeId, context, config);
         this.state = new Initial(node);
     }
 
-    public static Behavior<Message> create(int nodeId) {
-        return Behaviors.setup(context -> new NodeActor(context, nodeId));
+    public static Behavior<Message> create(int nodeId, Config config) {
+        return Behaviors.setup(context -> new NodeActor(context, nodeId, config));
     }
 
     @Override
@@ -46,8 +47,8 @@ public class NodeActor extends AbstractBehavior<Message> {
         }
 
         if (curr != next)
-            Utils.debugPrint(" •  STATE CHANGED in node " + node.id() +
-                    " from " + curr + " to " + next);
+            Utils.debugPrint(node.config().DEBUG(),
+                    " •  STATE CHANGED in node " + node.id() + " from " + curr + " to " + next);
 
         this.state = nextState;
         if (next == NodeState.LEFT)

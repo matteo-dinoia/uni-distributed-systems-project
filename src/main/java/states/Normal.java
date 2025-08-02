@@ -12,7 +12,6 @@ import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
 import states.sub.Get;
 import states.sub.Update;
-import utils.Config;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -99,7 +98,7 @@ public class Normal extends AbstractState {
 
     protected AbstractState handleNodeLeft(NotifyMsg.NodeLeft msg) {
         members.removeMember(msg.actorId());
-        assert members.size() >= Config.N : "Not enough node left";
+        assert members.size() >= config.N() : "Not enough node left";
         return keepSameState();
     }
 

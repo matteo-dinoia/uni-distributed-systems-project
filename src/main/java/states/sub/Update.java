@@ -11,7 +11,6 @@ import messages.node_operation.NodeDataMsg;
 import messages.node_operation.NodeMsg;
 import states.AbstractState;
 import states.Left;
-import utils.Config;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -90,7 +89,7 @@ public class Update extends AbstractState {
         if (lastVersionSeen == null || lastVersionSeen < msg.version())
             lastVersionSeen = msg.version();
 
-        if (writeLockGranted.size() >= Config.W) {
+        if (writeLockGranted.size() >= config.W()) {
             phase = Phase.READ_LOCK;
             newVer = lastVersionSeen + 1;
 
@@ -118,7 +117,7 @@ public class Update extends AbstractState {
         writeLockDenied.add(sender());
 
         // If denials exceed N - W, we can never get W locks then abort
-        if (Config.N - writeLockDenied.size() < Config.W)
+        if (config.N() - writeLockDenied.size() < config.W())
             return abortOperation();
         return keepSameState();
     }

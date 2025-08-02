@@ -11,7 +11,6 @@ import messages.node_operation.NodeDataMsg;
 import messages.node_operation.NodeMsg;
 import states.AbstractState;
 import states.Left;
-import utils.Config;
 
 import java.io.Serializable;
 import java.util.HashSet;
@@ -75,7 +74,7 @@ public class Get extends AbstractState {
         if (msg.requestId() != requestId) return ignore();
 
         respondedNegatively.add(sender());
-        if (Config.N - respondedNegatively.size() < Config.R) {
+        if (config.N() - respondedNegatively.size() < config.N()) {
             node.sendTo(client, new ResponseMsgs.ReadResultFailed(key));
             return new Left(super.node);
         }
@@ -92,7 +91,7 @@ public class Get extends AbstractState {
     // PRIVATE METHODS
 
     private boolean checkFinished() {
-        if (respondedPositively.size() < Config.R)
+        if (respondedPositively.size() < config.N())
             return false;
 
         if (latest == null || (lastVersionSeen != null && latest.version() < lastVersionSeen))

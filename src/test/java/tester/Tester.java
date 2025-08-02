@@ -29,23 +29,30 @@ public class Tester implements AutoCloseable {
     private final ActorTestKit testKit;
     private final HashMap<Integer, Client> clients = new HashMap<>();
     private final Ring<ActorRef<Message>> group = new Ring<>();
-    private static final Duration TIMEOUT_PROBE = Config.TIMOUT_PROBE;
+    private final Config config;
+    private final Duration TIMEOUT_PROBE;
 
 
     /// GENERAL UTILITIES
     public Tester(TestKitJunitResource resource, Set<Integer> initialNodes) {
+        this(resource, initialNodes, Config.defaultConfig(Config.SHOW_ALL_LOG_IN_TESTS));
+    }
+
+    public Tester(TestKitJunitResource resource, Set<Integer> initialNodes, Config config) {
         this.testKit = resource.testKit();
-        if (initialNodes.size() < Config.N)
+        this.config = config;
+        this.TIMEOUT_PROBE = config.TIMEOUT_PROBE();
+        if (initialNodes.size() < config.N())
             throw new RuntimeException("Cannot initialize because too little nodes");
 
         initializeMembers(initialNodes);
 
-        Utils.debugPrint("");
+        Utils.debugPrint(config.DEBUG(), "");
     }
 
     private void initializeMembers(Set<Integer> initialNodes) {
         for (Integer id : initialNodes)
-            group.put(id, testKit.spawn(NodeActor.create(id), "Node" + id));
+            group.put(id, testKit.spawn(NodeActor.create(id, config), "Node" + id));
 
         TestProbe<Message> probe = getProbe();
         for (ActorRef<Message> node : group.getMap().values())
@@ -96,7 +103,7 @@ public class Tester implements AutoCloseable {
         if (!(content instanceof ControlMsg.DebugCurrentStateResponse(NodeState realState)))
             throw new RuntimeException("Wrong message received");
 
-        Utils.debugPrint("");
+        Utils.debugPrint(config.DEBUG(), "");
         return realState;
     }
 
@@ -118,7 +125,7 @@ public class Tester implements AutoCloseable {
             res.put(id, data);
         }
 
-        return new StorageTester(res);
+        return new StorageTester(res, config);
     }
 
     // OPERATION TESTER
@@ -194,13 +201,13 @@ public class Tester implements AutoCloseable {
                 client.getReceiver().expectMessage(TIMEOUT_PROBE, new Message(getNode(nodeId), new ControlMsg.WriteFullyCompleted()));
         }
 
-        Utils.debugPrint("");
+        Utils.debugPrint(config.DEBUG(), "");
         return successfulOp;
     }
 
     /// JOIN: send StatusMsg.Join wrapped in Message and wait for JoinAck
     public boolean join(int nodeId) {
-        ActorRef<Message> node = testKit.spawn(NodeActor.create(nodeId), "Node" + nodeId);
+        ActorRef<Message> node = testKit.spawn(NodeActor.create(nodeId, config), "Node" + nodeId);
 
         TestProbe<Message> probe = getProbe();
 
@@ -217,7 +224,7 @@ public class Tester implements AutoCloseable {
             group.put(nodeId, node);
         else
             testKit.stop(node);
-        Utils.debugPrint("");
+        Utils.debugPrint(config.DEBUG(), "");
         return joined;
     }
 
@@ -236,7 +243,7 @@ public class Tester implements AutoCloseable {
             group.remove(nodeId);
             testKit.stop(node);
         }
-        Utils.debugPrint("");
+        Utils.debugPrint(config.DEBUG(), "");
         return left;
     }
 
@@ -253,7 +260,7 @@ public class Tester implements AutoCloseable {
 
         if (!(content instanceof ControlMsg.RecoverAck(boolean recovered)))
             throw new RuntimeException("Wrong message received");
-        Utils.debugPrint("");
+        Utils.debugPrint(config.DEBUG(), "");
         return recovered;
     }
 
@@ -263,7 +270,7 @@ public class Tester implements AutoCloseable {
         TestProbe<Message> probe = getProbe();
         send(probe, node, new StatusMsg.Crash());
         probe.expectMessage(TIMEOUT_PROBE, new Message(node, new ControlMsg.CrashAck()));
-        Utils.debugPrint("");
+        Utils.debugPrint(config.DEBUG(), "");
     }
 
     @Override
