@@ -1,5 +1,9 @@
 package states;
 
+import actor.NodeState;
+import actor.node.MemberManager;
+import actor.node.Node;
+import actor.node.storage.DataStorage;
 import akka.actor.typed.ActorRef;
 import messages.Message;
 import messages.client.DataMsg;
@@ -8,10 +12,6 @@ import messages.control.ControlMsg;
 import messages.node_operation.NodeDataMsg;
 import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
-import node.DataStorage;
-import node.MemberManager;
-import node.Node;
-import node.NodeState;
 import utils.Utils;
 
 import java.io.Serializable;

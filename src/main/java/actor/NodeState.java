@@ -1,4 +1,4 @@
-package node;
+package actor;
 
 public enum NodeState {
     TO_START,

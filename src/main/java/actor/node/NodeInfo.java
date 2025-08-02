@@ -1,4 +1,4 @@
-package node;
+package actor.node;
 
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.javadsl.ActorContext;

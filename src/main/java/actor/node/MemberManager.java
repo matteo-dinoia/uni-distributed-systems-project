@@ -1,9 +1,9 @@
-package node;
+package actor.node;
 
 import akka.actor.typed.ActorRef;
 import messages.Message;
 import utils.Config;
-import utils.Ring;
+import utils.structs.Ring;
 
 import java.util.ArrayList;
 import java.util.List;

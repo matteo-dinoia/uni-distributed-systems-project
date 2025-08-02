@@ -1,8 +1,8 @@
 package tester;
 
+import actor.node.storage.SendableData;
 import akka.actor.testkit.typed.javadsl.TestProbe;
 import messages.Message;
-import node.SendableData;
 
 import java.util.HashMap;
 

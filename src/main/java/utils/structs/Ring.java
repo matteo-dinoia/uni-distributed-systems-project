@@ -1,4 +1,4 @@
-package utils;
+package utils.structs;
 
 
 import java.util.*;
@@ -145,22 +145,5 @@ public class Ring<T> {
         }
 
         return true;
-    }
-
-    /// Not inclusive
-    @SuppressWarnings("unused")
-    public int circularDistance(int start, int end) {
-        RingNode<T> curr = ring.get(start);
-        RingNode<T> endPoint = ring.get(end);
-        assert curr != null && endPoint != null
-                : "Computing circular distance of not existent values";
-
-        int counter = 0;
-        while (curr != endPoint) {
-            curr = curr.right;
-            counter++;
-        }
-
-        return counter;
     }
 }

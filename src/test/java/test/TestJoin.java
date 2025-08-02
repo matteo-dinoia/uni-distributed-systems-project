@@ -1,7 +1,7 @@
 package test;
 
+import actor.NodeState;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
-import node.NodeState;
 import org.junit.ClassRule;
 import org.junit.Test;
 import tester.StorageTester;
@@ -137,7 +137,7 @@ public class TestJoin {
             assert test.write(null, 2, 5);
             storages = test.getNodeStorages();
             storages.assertValid();
-            
+
             test.crash(1);
             storages = test.getNodeStorages();
             storages.assertValid(Set.of(1));

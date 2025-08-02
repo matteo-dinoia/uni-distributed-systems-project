@@ -1,6 +1,7 @@
-package node;
+package actor.node;
 
 
+import actor.node.storage.DataStorage;
 import akka.actor.typed.ActorRef;
 import akka.actor.typed.javadsl.ActorContext;
 import messages.Message;

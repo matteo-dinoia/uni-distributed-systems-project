@@ -1,5 +1,6 @@
-package node;
+package actor;
 
+import actor.node.Node;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;

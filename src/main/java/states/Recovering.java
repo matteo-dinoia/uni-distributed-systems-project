@@ -1,11 +1,11 @@
 package states;
 
+import actor.NodeState;
+import actor.node.Node;
 import akka.actor.typed.ActorRef;
 import messages.Message;
 import messages.control.ControlMsg;
 import messages.node_operation.NodeMsg;
-import node.Node;
-import node.NodeState;
 
 public class Recovering extends AbstractState {
     private final int reqId;

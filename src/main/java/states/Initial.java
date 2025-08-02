@@ -1,9 +1,9 @@
 package states;
 
+import actor.NodeState;
+import actor.node.Node;
 import messages.client.StatusMsg;
 import messages.control.ControlMsg;
-import node.Node;
-import node.NodeState;
 
 import java.io.Serializable;
 import java.util.HashMap;

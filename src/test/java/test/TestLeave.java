@@ -35,7 +35,7 @@ public class TestLeave {
     public void leaveNodeCrashed() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
             test.crash(3);
-            assert test.getNodeState(3) == node.NodeState.CRASHED;
+            assert test.getNodeState(3) == actor.NodeState.CRASHED;
             test.leave(3);
         }
     }

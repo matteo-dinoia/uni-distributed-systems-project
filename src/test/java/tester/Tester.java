@@ -1,5 +1,8 @@
 package tester;
 
+import actor.NodeActor;
+import actor.NodeState;
+import actor.node.storage.SendableData;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.testkit.typed.javadsl.TestProbe;
@@ -9,12 +12,9 @@ import messages.client.DataMsg;
 import messages.client.ResponseMsgs;
 import messages.client.StatusMsg;
 import messages.control.ControlMsg;
-import node.NodeActor;
-import node.NodeState;
-import node.SendableData;
 import utils.Config;
-import utils.Ring;
 import utils.Utils;
+import utils.structs.Ring;
 
 import java.io.Serializable;
 import java.time.Duration;

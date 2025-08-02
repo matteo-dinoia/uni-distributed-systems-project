@@ -1,5 +1,7 @@
-package node;
+package actor.node.storage;
 
+import actor.node.MemberManager;
+import actor.node.NodeInfo;
 import messages.control.ControlMsg;
 
 import java.util.HashMap;

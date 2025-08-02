@@ -1,15 +1,15 @@
 package states;
 
+import actor.NodeState;
+import actor.node.Node;
+import actor.node.storage.DataElement;
+import actor.node.storage.SendableData;
 import messages.client.DataMsg;
 import messages.client.StatusMsg;
 import messages.control.ControlMsg;
 import messages.node_operation.NodeDataMsg;
 import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
-import node.DataElement;
-import node.Node;
-import node.NodeState;
-import node.SendableData;
 import states.sub.Get;
 import states.sub.Update;
 import utils.Config;

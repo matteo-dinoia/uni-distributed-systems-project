@@ -1,4 +1,4 @@
-package utils;
+package utils.structs;
 
 import java.util.Objects;
 

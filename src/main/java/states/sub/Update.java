@@ -1,5 +1,7 @@
 package states.sub;
 
+import actor.NodeState;
+import actor.node.Node;
 import akka.actor.typed.ActorRef;
 import messages.Message;
 import messages.client.DataMsg;
@@ -7,8 +9,6 @@ import messages.client.ResponseMsgs;
 import messages.control.ControlMsg;
 import messages.node_operation.NodeDataMsg;
 import messages.node_operation.NodeMsg;
-import node.Node;
-import node.NodeState;
 import states.AbstractState;
 import states.Left;
 import utils.Config;

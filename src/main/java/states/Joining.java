@@ -1,15 +1,15 @@
 package states;
 
+import actor.NodeState;
+import actor.node.Node;
+import actor.node.storage.SendableData;
 import akka.actor.typed.ActorRef;
 import messages.Message;
 import messages.control.ControlMsg;
 import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
-import node.Node;
-import node.NodeState;
-import node.SendableData;
 import utils.Config;
-import utils.Ring;
+import utils.structs.Ring;
 
 import java.util.*;
 

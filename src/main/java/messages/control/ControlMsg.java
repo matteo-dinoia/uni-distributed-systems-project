@@ -1,7 +1,7 @@
 package messages.control;
 
-import node.NodeState;
-import node.SendableData;
+import actor.NodeState;
+import actor.node.storage.SendableData;
 
 import java.io.Serializable;
 import java.util.Collections;
