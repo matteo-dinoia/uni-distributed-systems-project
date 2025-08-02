@@ -55,7 +55,7 @@ public class MemberManager {
         return res;
     }
 
-    /// Used when living find all responsible if there weren't himself
+    /// Used when living find all responsible after this node leaves
     public List<ActorRef<Message>> findNewResponsibles(int key) {
         Integer firstResponsible = memberList.getFloorKey(key);
         assert firstResponsible != null;
