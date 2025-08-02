@@ -10,7 +10,7 @@ import messages.node_operation.NodeMsg;
 import node.Node;
 import node.NodeState;
 import states.AbstractState;
-import states.Normal;
+import states.Left;
 import utils.Config;
 
 import java.util.ArrayList;
@@ -151,7 +151,7 @@ public class Update extends AbstractState {
 
         // That is only needed for the tester
         node.sendTo(client, new ControlMsg.WriteFullyCompleted());
-        return new Normal(super.node);
+        return new Left(super.node);
     }
 
     private AbstractState abortOperation() {
@@ -159,7 +159,7 @@ public class Update extends AbstractState {
         node.sendTo(getToFree(false), new NodeDataMsg.LocksRelease(requestId, key));
 
         node.sendTo(client, new ResponseMsgs.WriteTimeout(key));
-        return new Normal(super.node);
+        return new Left(super.node);
     }
 
     private Stream<ActorRef<Message>> getToFree(boolean successfulRead) {

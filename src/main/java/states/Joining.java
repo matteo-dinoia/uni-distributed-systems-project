@@ -89,8 +89,9 @@ public class Joining extends AbstractState {
         if (msg.operationId() != reqId)
             return ignore();
 
+        // Failed and as such exit
         node.sendTo(mainActorRef, new ControlMsg.JoinAck(false));
-        return new Initial(super.node);
+        return new Left(super.node);
     }
 
     @Override

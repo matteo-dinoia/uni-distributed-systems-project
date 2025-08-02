@@ -10,7 +10,7 @@ import node.Node;
 import node.NodeState;
 import node.SendableData;
 import states.AbstractState;
-import states.Normal;
+import states.Left;
 import utils.Config;
 
 import java.util.HashSet;
@@ -55,7 +55,7 @@ public class Get extends AbstractState {
             latest = msg.element();
 
         if (checkFinished())
-            return new Normal(super.node);
+            return new Left(super.node);
         return keepSameState();
     }
 
@@ -66,7 +66,7 @@ public class Get extends AbstractState {
         respondedNegatively.add(sender());
         if (Config.N - respondedNegatively.size() < Config.R) {
             node.sendTo(client, new ResponseMsgs.ReadResultFailed(key));
-            return new Normal(super.node);
+            return new Left(super.node);
         }
         return keepSameState();
     }
@@ -76,7 +76,7 @@ public class Get extends AbstractState {
         if (msg.operationId() != requestId) return ignore();
 
         node.sendTo(client, new ResponseMsgs.ReadTimeout(key));
-        return new Normal(super.node);
+        return new Left(super.node);
     }
 
     private boolean checkFinished() {

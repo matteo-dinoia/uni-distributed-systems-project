@@ -106,7 +106,8 @@ public class Normal extends AbstractState {
         if (nextSubstate == null)
             return panic("Substate panic");
 
-        if (nextSubstate.getNodeRepresentation() == NodeState.NORMAL)
+        // If the sub state terminated, remove it
+        if (nextSubstate.getNodeRepresentation() == NodeState.LEFT)
             substates.remove(requestId);
         return keepSameState();
     }
