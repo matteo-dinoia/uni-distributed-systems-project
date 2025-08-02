@@ -21,8 +21,8 @@ public class Recovering extends AbstractState {
     }
 
     private void sendInitialMsg(ActorRef<Message> bootstrapPeer) {
-        node.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
         node.scheduleTimeout(reqId);
+        node.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
     }
 
     @Override

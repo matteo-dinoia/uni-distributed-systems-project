@@ -54,8 +54,8 @@ public class Update extends AbstractState {
      */
     private void initiateReadLockPhase() {
         // Phase 1: request read-lock from all responsible replicas
-        node.sendToResponsible(key, new NodeDataMsg.WriteLockRequest(requestId, key));
         node.scheduleTimeout(requestId);
+        node.sendToResponsible(key, new NodeDataMsg.WriteLockRequest(requestId, key));
     }
 
     @Override

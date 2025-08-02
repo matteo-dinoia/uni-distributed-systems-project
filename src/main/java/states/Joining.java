@@ -38,8 +38,9 @@ public class Joining extends AbstractState {
         this.reqId = node.getFreshRequestId();
         this.phase = JoinPhase.BOOTSTRAP;
         this.mainActorRef = mainActorRef;
-        node.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
+
         node.scheduleTimeout(reqId);
+        node.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
     }
 
     @Override

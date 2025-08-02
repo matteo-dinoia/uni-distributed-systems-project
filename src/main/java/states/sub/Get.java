@@ -36,8 +36,8 @@ public class Get extends AbstractState {
     }
 
     public void handleInitialMsg(DataMsg.Get msg) {
-        node.sendToResponsible(msg.key(), new NodeDataMsg.ReadRequest(requestId, msg.key()));
         node.scheduleTimeout(requestId);
+        node.sendToResponsible(msg.key(), new NodeDataMsg.ReadRequest(requestId, msg.key()));
     }
 
     @Override

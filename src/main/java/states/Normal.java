@@ -212,7 +212,7 @@ public class Normal extends AbstractState {
         return keepSameState();
     }
 
-    protected AbstractState handleRollbackPassResponsability(NodeMsg.RollbackPassResponsability msg) {
+    protected AbstractState handleRollbackPassResponsability(NodeMsg.RollbackPassResponsability ignored) {
         storage.discardNotResponsible(members);
         return keepSameState();
     }

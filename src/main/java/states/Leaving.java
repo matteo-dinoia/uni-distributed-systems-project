@@ -34,8 +34,8 @@ public class Leaving extends AbstractState {
         this.reqId = node.getFreshRequestId();
         this.mainActorRef = mainActorRef;
 
-        contactedNodes = sendDataLeaving();
         node.scheduleTimeout(reqId);
+        contactedNodes = sendDataLeaving();
     }
 
     private Set<ActorRef<Message>> sendDataLeaving() {

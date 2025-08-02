@@ -8,7 +8,7 @@ import utils.Config;
 
 import java.util.Set;
 
-public class DifferentParameters {
+public class TestDifferentParameters {
     @ClassRule
     public static final TestKitJunitResource testKit = new TestKitJunitResource();
 
@@ -26,6 +26,18 @@ public class DifferentParameters {
             var storages = test.getNodeStorages();
             storages.assertValid();
             storages.assertLatest(1, 0);
+        }
+    }
+
+    @Test
+    public void writeNotEnoughTime() {
+        Config config = Config.defaultConfig(Config.SHOW_ALL_LOG_IN_TESTS).timeoutsMs(100, 5, 1000);
+        try (Tester test = new Tester(testKit, Set.of(1, 2, 5, 6, 7, 11), config)) {
+            assert !test.write(null, 5, 5);
+
+            var storages = test.getNodeStorages();
+            storages.assertValid();
+            storages.assertMissing(5);
         }
     }
 }
