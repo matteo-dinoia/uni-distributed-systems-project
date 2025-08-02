@@ -1,7 +1,5 @@
 package states;
 
-import akka.actor.typed.ActorRef;
-import messages.Message;
 import messages.client.DataMsg;
 import messages.client.StatusMsg;
 import messages.control.ControlMsg;
@@ -80,7 +78,7 @@ public class Normal extends AbstractState {
     @Override
     protected AbstractState handleNodeJoined(NotifyMsg.NodeJoined msg) {
         members.addMember(msg.actorId(), sender());
-        storage.removeNotUnderMyControl(members);
+        storage.discardNotResponsible(members);
         return keepSameState();
     }
 
@@ -185,7 +183,7 @@ public class Normal extends AbstractState {
 
     @Override
     protected AbstractState handleBootstrapRequest(NodeMsg.BootstrapRequest req) {
-        HashMap<Integer, ActorRef<Message>> currentMembers = members.getMembers();
+        var currentMembers = new HashMap<>(members.getMembers());
         node.sendTo(sender(), new NodeMsg.BootstrapResponse(req.requestId(), currentMembers));
         return keepSameState();
     }
@@ -215,7 +213,7 @@ public class Normal extends AbstractState {
 
     @Override
     protected AbstractState handleRollbackPassResponsability(NodeMsg.RollbackPassResponsability msg) {
-        storage.removeNotUnderMyControl(members);
+        storage.discardNotResponsible(members);
         return keepSameState();
     }
 

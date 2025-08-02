@@ -6,7 +6,6 @@ import utils.Config;
 import utils.Ring;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -64,8 +63,7 @@ public class MemberManager {
         ArrayList<ActorRef<Message>> list = new ArrayList<>(memberList.getInterval(firstResponsible, 0, Config.N));
         list.remove(node.self());
 
-        if (list.size() < Config.N)
-            return null;
+        assert list.size() >= Config.N : "List of responsible is smaller than N";
         return list;
     }
 

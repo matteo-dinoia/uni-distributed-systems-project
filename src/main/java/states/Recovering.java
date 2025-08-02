@@ -34,7 +34,7 @@ public class Recovering extends AbstractState {
             return ignore();
 
         members.setMembers(msg.updatedMembers());
-        storage.discardKeysNotUnderResponsibility(members);
+        storage.discardNotResponsible(members);
 
         node.sendTo(mainActorRef, new ControlMsg.RecoverAck(true));
         return new Normal(super.node);

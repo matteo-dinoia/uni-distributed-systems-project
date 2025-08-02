@@ -25,7 +25,7 @@ public class Node {
     public Node(int selfId, ActorContext<Message> context) {
         this.info = new NodeInfo(selfId, context);
         this.members = new MemberManager(info);
-        this.storage = new DataStorage();
+        this.storage = new DataStorage(info);
         this.lastRequestId = -1;
     }
 
@@ -79,6 +79,10 @@ public class Node {
         dest.tell(new Message(info.self(), msg));
     }
 
+    public void sendToResponsible(int key, Serializable msg) {
+        sendTo(members.getResponsibles(key).stream(), msg);
+    }
+
     public void scheduleTimeout(int operationId) {
         var timeoutMsg = new Message(info.self(), new NodeMsg.Timeout(operationId));
         Utils.debugPrint("<~~ NODE " + info.id() + " scheduled a timeout for operation " + operationId);
@@ -88,11 +92,5 @@ public class Node {
                 () -> info.self().tell(timeoutMsg),
                 info.context().getExecutionContext()
         );
-    }
-
-    /// Return the amount of messages actually sent
-    /// This is needed as it is needed to know the amount of ack to wait
-    public void sendToResponsible(int key, Serializable msg) {
-        sendTo(members.getResponsibles(key).stream(), msg);
     }
 }
