@@ -27,7 +27,7 @@ public class Leaving extends AbstractState {
         this.mainActorRef = mainActorRef;
 
         contactedNodes = sendDataLeaving();
-        members.scheduleSendTimeoutToMyself(reqId);
+        node.scheduleTimeout(reqId);
     }
 
     public static AbstractState enter(Node node, ActorRef<Message> mainActorRef) {
@@ -47,7 +47,7 @@ public class Leaving extends AbstractState {
         HashMap<ActorRef<Message>, HashMap<Integer, SendableData>> newResponsability = new HashMap<>();
         for (Integer key : storage.getAllKeys()) {
             DataElement value = storage.get(key);
-            List<ActorRef<Message>> newResponsibles = members.findNewResponsiblesFor(key);
+            List<ActorRef<Message>> newResponsibles = members.findNewResponsibles(key);
 
             for (ActorRef<Message> target : newResponsibles) {
                 var list = newResponsability.computeIfAbsent(target, _ -> new HashMap<>());
@@ -59,7 +59,7 @@ public class Leaving extends AbstractState {
 
         for (var target : newResponsability.keySet()) {
             var list = newResponsability.get(target);
-            members.sendTo(target, new NodeMsg.PassResponsabilityRequest(reqId, list));
+            node.sendTo(target, new NodeMsg.PassResponsabilityRequest(reqId, list));
         }
 
         return newResponsability.keySet();
@@ -73,10 +73,9 @@ public class Leaving extends AbstractState {
             ackCounts.put(key, ackCounts.get(key) + 1);
         }
 
-        if (allKeysConfirmed()) {
+        if (allKeysConfirmed())
             return concludeLeave();
-        }
-
+        
         return keepSameState();
     }
 
@@ -92,14 +91,14 @@ public class Leaving extends AbstractState {
     }
 
     private AbstractState concludeLeave() {
-        members.sendToAll(new NotifyMsg.NodeLeft(members.getSelfId()));
-        members.sendTo(mainActorRef, new ControlMsg.LeaveAck(true));
+        node.sendToAll(new NotifyMsg.NodeLeft(node.id()));
+        node.sendTo(mainActorRef, new ControlMsg.LeaveAck(true));
         return new Left(node);
     }
 
     private AbstractState rollbackLeave() {
-        members.sendTo(contactedNodes.stream(), new NodeMsg.RollbackPassResponsability(reqId));
-        members.sendTo(mainActorRef, new ControlMsg.LeaveAck(false));
+        node.sendTo(contactedNodes.stream(), new NodeMsg.RollbackPassResponsability(reqId));
+        node.sendTo(mainActorRef, new ControlMsg.LeaveAck(false));
         return new Normal(super.node);
     }
 }

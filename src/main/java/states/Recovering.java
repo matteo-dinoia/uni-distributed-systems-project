@@ -24,8 +24,8 @@ public class Recovering extends AbstractState {
     }
 
     private void sendInitialMsg(ActorRef<Message> bootstrapPeer) {
-        members.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
-        members.scheduleSendTimeoutToMyself(reqId);
+        node.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
+        node.scheduleTimeout(reqId);
     }
 
     @Override
@@ -33,10 +33,10 @@ public class Recovering extends AbstractState {
         if (msg.requestId() != reqId)
             return ignore();
 
-        members.setMemberList(msg.updatedMembers());
+        members.setMembers(msg.updatedMembers());
         storage.discardKeysNotUnderResponsibility(members);
 
-        members.sendTo(mainActorRef, new ControlMsg.RecoverAck(true));
+        node.sendTo(mainActorRef, new ControlMsg.RecoverAck(true));
         return new Normal(super.node);
     }
 
@@ -44,7 +44,7 @@ public class Recovering extends AbstractState {
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
         if (msg.operationId() != reqId)
             return ignore();
-        members.sendTo(mainActorRef, new ControlMsg.RecoverAck(false));
+        node.sendTo(mainActorRef, new ControlMsg.RecoverAck(false));
         return new Crashed(super.node);
     }
 

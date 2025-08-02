@@ -18,7 +18,8 @@ public class DataStorage {
     public void discardKeysNotUnderResponsibility(MemberManager members) {
         Set<Integer> keys = new HashSet<>(data.keySet());
         for (Integer key : keys) {
-            if (!members.isResponsible(members.getSelfRef(), key)) {
+            // TODO FIX WITH MYSELF
+            if (!members.isResponsible(null, key)) {
                 data.remove(key);
             }
         }
@@ -61,7 +62,8 @@ public class DataStorage {
         var keySet = this.data.keySet();
         for (Integer key : keySet) {
             assert key != null : "Found a null key";
-            if (!members.isResponsible(members.getSelfRef(), key))
+            // TODO FIX WITH MYSELF
+            if (!members.isResponsible(null, key))
                 data.remove(key);
         }
 

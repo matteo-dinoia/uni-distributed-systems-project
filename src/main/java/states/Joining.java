@@ -50,8 +50,8 @@ public class Joining extends AbstractState {
         this.reqId = node.getFreshRequestId();
         this.phase = JoinPhase.BOOTSTRAP;
         this.mainActorRef = mainActorRef;
-        members.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
-        members.scheduleSendTimeoutToMyself(reqId);
+        node.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
+        node.scheduleTimeout(reqId);
     }
 
     @Override
@@ -64,13 +64,13 @@ public class Joining extends AbstractState {
         if (msg.requestId() != reqId || phase != JoinPhase.BOOTSTRAP)
             return ignore();
 
-        members.setMemberList(msg.updatedMembers());
+        members.setMembers(msg.updatedMembers());
         phase = JoinPhase.RESPONSIBILITIES;
 
         List<ActorRef<Message>> toCommunicate = members.getNodeToCommunicateForJoin();
         createResponded(msg.updatedMembers(), new HashSet<>(toCommunicate));
 
-        members.sendTo(toCommunicate.stream(), new NodeMsg.ResponsabilityRequest(reqId, members.getSelfId()));
+        node.sendTo(toCommunicate.stream(), new NodeMsg.ResponsabilityRequest(reqId, node.id()));
         return keepSameState();
     }
 
@@ -89,7 +89,7 @@ public class Joining extends AbstractState {
         if (msg.operationId() != reqId)
             return ignore();
 
-        members.sendTo(mainActorRef, new ControlMsg.JoinAck(false));
+        node.sendTo(mainActorRef, new ControlMsg.JoinAck(false));
         return new Initial(super.node);
     }
 
@@ -135,8 +135,8 @@ public class Joining extends AbstractState {
         for (var entry : receivedData.entrySet())
             storage.put(entry.getKey(), entry.getValue());
 
-        members.sendToAll(new NotifyMsg.NodeJoined(members.getSelfId()));
-        members.sendTo(mainActorRef, new ControlMsg.JoinAck(true));
+        node.sendToAll(new NotifyMsg.NodeJoined(node.id()));
+        node.sendTo(mainActorRef, new ControlMsg.JoinAck(true));
         return new Normal(super.node);
     }
 }

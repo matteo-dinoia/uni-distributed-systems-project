@@ -1,38 +1,29 @@
 package node;
 
 import akka.actor.typed.ActorRef;
-import akka.actor.typed.javadsl.ActorContext;
 import messages.Message;
-import messages.node_operation.NodeMsg;
 import utils.Config;
 import utils.Ring;
-import utils.Utils;
 
-import java.io.Serializable;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class MemberManager {
-    private static final Random rnd = new Random();
-    private final int selfId;
-    private final ActorRef<Message> selfRef;
-    private final ActorContext<Message> context;
+    private final NodeInfo node;
     private final Ring<ActorRef<Message>> memberList;
 
 
-    public MemberManager(int selfId, ActorContext<Message> context) {
-        this.selfId = selfId;
-        this.selfRef = context.getSelf();
+    public MemberManager(NodeInfo nodeInfo) {
+        this.node = nodeInfo;
         this.memberList = new Ring<>();
-        this.memberList.put(selfId, this.selfRef);
-        this.context = context;
+        this.memberList.put(nodeInfo.id(), nodeInfo.self());
     }
 
-    public void setMemberList(Map<Integer, ActorRef<Message>> members) {
+    public void setMembers(Map<Integer, ActorRef<Message>> members) {
         this.memberList.replaceAll(members);
-        if (!members.containsKey(this.selfId))
-            this.memberList.put(this.selfId, this.selfRef);
+        this.memberList.put(node.id(), node.self());
     }
 
     public void addMember(int key, ActorRef<Message> member) {
@@ -43,72 +34,21 @@ public class MemberManager {
         this.memberList.remove(key);
     }
 
-    public HashMap<Integer, ActorRef<Message>> getMemberList() {
+    // Get Lists
+
+    public HashMap<Integer, ActorRef<Message>> getMembers() {
         return this.memberList.getHashMap();
     }
 
-    public ActorRef<Message> getSelfRef() {
-        return selfRef;
-    }
-
-    public int getSelfId() {
-        return selfId;
-    }
-
-    // SENDERS
-
-    public void sendToAll(Serializable msg) {
-        sendTo(memberList.getHashMap().values().stream(), msg);
-    }
-
-    public void sendTo(Stream<ActorRef<Message>> dest, Serializable msg) {
-        // randomly arrange peers
-        var dests = dest.collect(Collectors.toList());
-        Collections.shuffle(dests);
-
-        for (ActorRef<Message> p : dests)
-            sendTo(p, msg);
-    }
-
-    public void sendTo(ActorRef<Message> dest, Serializable msg) {
-        // simulate network delays using sleep
-        try {
-            Thread.sleep(rnd.nextLong(Config.MAX_DELAY.toMillis()));
-        } catch (InterruptedException _) {
-            System.err.println("Cannot sleep for some reason");
-        }
-
-        // It is allowed sending to himself
-        Utils.debugPrint("<== NODE " + this.getSelfId() + " SENT TO '" + dest.path().name() + "' " + msg.toString());
-        dest.tell(new Message(this.selfRef, msg));
-    }
-
-    public void scheduleSendTimeoutToMyself(int operationId) {
-        var timeoutMsg = new Message(this.selfRef, new NodeMsg.Timeout(operationId));
-        Utils.debugPrint("<~~ NODE " + this.getSelfId() + " scheduled a timeout for operation " + operationId);
-
-        context.getSystem().scheduler().scheduleOnce(
-                Config.TIMEOUT,
-                () -> this.selfRef.tell(timeoutMsg),
-                context.getExecutionContext()
-        );
-    }
-
-    /// Return the amount of messages actually sent
-    /// This is needed as it is needed to know the amount of ack to wait
-    public void sendToDataResponsible(int key, Serializable msg) {
-        sendTo(getResponsibleForData(key).stream(), msg);
-    }
-
     public ArrayList<ActorRef<Message>> getNodeToCommunicateForJoin() {
-        var list = new ArrayList<>(memberList.getInterval(getSelfId(), Config.N - 1, Config.N - 1));
-        list.remove(getSelfRef());
+        var list = new ArrayList<>(memberList.getInterval(node.id(), Config.N - 1, Config.N - 1));
+        list.remove(node.self());
         return list;
     }
 
     // DATA RESPONSABILITY
 
-    public List<ActorRef<Message>> getResponsibleForData(int key) {
+    public List<ActorRef<Message>> getResponsibles(int key) {
         Integer firstResponsible = memberList.getCeilKey(key);
         assert firstResponsible != null;
         var res = memberList.getInterval(firstResponsible, 0, Config.N - 1);
@@ -117,12 +57,12 @@ public class MemberManager {
     }
 
     /// Used when living find all responsible if there weren't himself
-    public List<ActorRef<Message>> findNewResponsiblesFor(int key) {
+    public List<ActorRef<Message>> findNewResponsibles(int key) {
         Integer firstResponsible = memberList.getFloorKey(key);
         assert firstResponsible != null;
 
         ArrayList<ActorRef<Message>> list = new ArrayList<>(memberList.getInterval(firstResponsible, 0, Config.N));
-        list.remove(getSelfRef());
+        list.remove(node.self());
 
         if (list.size() < Config.N)
             return null;
@@ -138,8 +78,10 @@ public class MemberManager {
     }
 
     public boolean isResponsible(ActorRef<Message> actor, int key) {
-        return getResponsibleForData(key).contains(actor);
+        return getResponsibles(key).contains(actor);
     }
+
+    // OTHERS
 
     public int size() {
         return memberList.size();

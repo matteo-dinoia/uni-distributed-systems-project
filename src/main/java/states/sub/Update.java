@@ -58,8 +58,8 @@ public class Update extends AbstractState {
      */
     private void initiateReadLockPhase() {
         // Phase 1: request read-lock from all responsible replicas
-        members.sendToDataResponsible(key, new NodeDataMsg.WriteLockRequest(requestId, key));
-        members.scheduleSendTimeoutToMyself(requestId);
+        node.sendToResponsible(key, new NodeDataMsg.WriteLockRequest(requestId, key));
+        node.scheduleTimeout(requestId);
     }
 
 
@@ -81,12 +81,12 @@ public class Update extends AbstractState {
             newVer = lastVersionSeen + 1;
 
             // respond to the client with the write result
-            members.sendTo(client, new ResponseMsgs.WriteSucceeded(key, newValue, newVer));
+            node.sendTo(client, new ResponseMsgs.WriteSucceeded(key, newValue, newVer));
 
             // send the write request only to replicas that granted the lock
             var writeReq = new NodeDataMsg.ReadLockRequest(requestId, key);
             for (ActorRef<Message> ref : this.writeLockGranted)
-                members.sendTo(ref, writeReq);
+                node.sendTo(ref, writeReq);
         }
 
         return keepSameState();
@@ -116,7 +116,7 @@ public class Update extends AbstractState {
         if (readLockAcked.size() >= writeLockGranted.size()) {
             phase = Phase.WRITE_AND_RELEASE;
             assert newVer != null : "New version read for write operation is null";
-            members.sendTo(writeLockGranted.stream(), new NodeDataMsg.WriteRequest(requestId, key, newValue, newVer));
+            node.sendTo(writeLockGranted.stream(), new NodeDataMsg.WriteRequest(requestId, key, newValue, newVer));
         }
         return keepSameState();
     }
@@ -147,23 +147,23 @@ public class Update extends AbstractState {
 
     private AbstractState concludeOperation() {
         // Free all lock that didn't respond
-        members.sendTo(getToFree(true), new NodeDataMsg.LocksRelease(requestId, key));
+        node.sendTo(getToFree(true), new NodeDataMsg.LocksRelease(requestId, key));
 
         // That is only needed for the tester
-        members.sendTo(client, new ControlMsg.WriteFullyCompleted());
+        node.sendTo(client, new ControlMsg.WriteFullyCompleted());
         return new Normal(super.node);
     }
 
     private AbstractState abortOperation() {
         // Free all lock not denied
-        members.sendTo(getToFree(false), new NodeDataMsg.LocksRelease(requestId, key));
+        node.sendTo(getToFree(false), new NodeDataMsg.LocksRelease(requestId, key));
 
-        members.sendTo(client, new ResponseMsgs.WriteTimeout(key));
+        node.sendTo(client, new ResponseMsgs.WriteTimeout(key));
         return new Normal(super.node);
     }
 
     private Stream<ActorRef<Message>> getToFree(boolean successfulRead) {
-        var res = new ArrayList<>(members.getResponsibleForData(key));
+        var res = new ArrayList<>(members.getResponsibles(key));
 
         if (successfulRead)
             res.removeAll(writeLockGranted);

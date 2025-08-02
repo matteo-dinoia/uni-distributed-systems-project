@@ -42,7 +42,7 @@ public abstract class AbstractState {
     }
 
     protected AbstractState log_unhandled(Serializable msg) {
-        return log("[WARN] Node " + members.getSelfId() + " in state " + getNodeRepresentation()
+        return log("[WARN] Node " + node.id() + " in state " + getNodeRepresentation()
                 + " ignoring message '" + msg.getClass().getName() + "' without explicitely declaring so");
     }
 
@@ -74,7 +74,7 @@ public abstract class AbstractState {
     public final AbstractState handle(ActorRef<Message> sender, Serializable message) {
         overwriteSender(sender);
         if (getNodeRepresentation() != NodeState.SUB)
-            Utils.debugPrint("==> NODE " + members.getSelfId() + " (" + getNodeRepresentation() + ") RECEIVED from " + sender().path().name() + " " + message.toString());
+            Utils.debugPrint("==> NODE " + node.id() + " (" + getNodeRepresentation() + ") RECEIVED from " + sender().path().name() + " " + message.toString());
 
         try {
             return switch (message) {
@@ -136,13 +136,12 @@ public abstract class AbstractState {
 
     // CUSTOM MESSAGE HANDLERS ---------------------------------------------------------------
     private AbstractState handleDebugCurrentStateRequest(ControlMsg.DebugCurrentStateRequest ignored) {
-        members.sendTo(sender(), new ControlMsg.DebugCurrentStateResponse(getNodeRepresentation()));
+        node.sendTo(sender(), new ControlMsg.DebugCurrentStateResponse(getNodeRepresentation()));
         return keepSameState();
     }
 
     private AbstractState handleDebugCurrentStorageRequest(ControlMsg.DebugCurrentStorageRequest ignored) {
-        int nodeId = members.getSelfId();
-        members.sendTo(sender(), storage.getDebugInfoMsg(nodeId));
+        node.sendTo(sender(), storage.getDebugInfoMsg(node.id()));
         return keepSameState();
     }
 

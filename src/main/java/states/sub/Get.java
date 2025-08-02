@@ -41,8 +41,8 @@ public class Get extends AbstractState {
     }
 
     public void handleInitialMsg(DataMsg.Get msg) {
-        members.sendToDataResponsible(msg.key(), new NodeDataMsg.ReadRequest(requestId, msg.key()));
-        members.scheduleSendTimeoutToMyself(requestId);
+        node.sendToResponsible(msg.key(), new NodeDataMsg.ReadRequest(requestId, msg.key()));
+        node.scheduleTimeout(requestId);
     }
 
     @Override
@@ -65,7 +65,7 @@ public class Get extends AbstractState {
 
         respondedNegatively.add(sender());
         if (Config.N - respondedNegatively.size() < Config.R) {
-            members.sendTo(client, new ResponseMsgs.ReadResultFailed(key));
+            node.sendTo(client, new ResponseMsgs.ReadResultFailed(key));
             return new Normal(super.node);
         }
         return keepSameState();
@@ -75,7 +75,7 @@ public class Get extends AbstractState {
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
         if (msg.operationId() != requestId) return ignore();
 
-        members.sendTo(client, new ResponseMsgs.ReadTimeout(key));
+        node.sendTo(client, new ResponseMsgs.ReadTimeout(key));
         return new Normal(super.node);
     }
 
@@ -84,11 +84,11 @@ public class Get extends AbstractState {
             return false;
 
         if (latest == null || (lastVersionSeen != null && latest.version() < lastVersionSeen))
-            members.sendTo(client, new ResponseMsgs.ReadResultFailed(key));
+            node.sendTo(client, new ResponseMsgs.ReadResultFailed(key));
         else if (latest.version() < 0) // case of entry not existent
-            members.sendTo(client, new ResponseMsgs.ReadResultInexistentValue(key));
+            node.sendTo(client, new ResponseMsgs.ReadResultInexistentValue(key));
         else
-            members.sendTo(client, new ResponseMsgs.ReadSucceeded(key, latest.value(), latest.version()));
+            node.sendTo(client, new ResponseMsgs.ReadSucceeded(key, latest.value(), latest.version()));
         return true;
 
     }

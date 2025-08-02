@@ -29,8 +29,8 @@ public class Initial extends AbstractState {
 
     @Override
     protected AbstractState handleInitialMembers(StatusMsg.InitialMembers msg) {
-        members.setMemberList(new HashMap<>(msg.initial()));
-        members.sendTo(sender(), new ControlMsg.InitialMembersAck());
+        members.setMembers(new HashMap<>(msg.initial()));
+        node.sendTo(sender(), new ControlMsg.InitialMembersAck());
         return new Normal(super.node);
     }
 
