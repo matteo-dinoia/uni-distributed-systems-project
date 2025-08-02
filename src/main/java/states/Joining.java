@@ -1,16 +1,18 @@
 package states;
 
+import actor.NodeState;
+import actor.node.Node;
+import actor.node.storage.SendableData;
 import akka.actor.typed.ActorRef;
 import messages.Message;
 import messages.control.ControlMsg;
 import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
-import node.Node;
-import node.NodeState;
-import node.SendableData;
 import utils.Config;
-import utils.Ring;
+import utils.structs.Editable;
+import utils.structs.Ring;
 
+import java.io.Serializable;
 import java.util.*;
 
 /**
@@ -19,19 +21,6 @@ import java.util.*;
  * 2) RESPONSIBILITIES: request data for keys this node will now serve
  */
 public class Joining extends AbstractState {
-    static class EditableBoolean {
-        public boolean valid;
-
-        public EditableBoolean(boolean valid) {
-            this.valid = valid;
-        }
-
-        @Override
-        public String toString() {
-            return "" + this.valid;
-        }
-    }
-
     private enum JoinPhase {BOOTSTRAP, RESPONSIBILITIES}
 
     private final ActorRef<Message> mainActorRef;
@@ -39,7 +28,7 @@ public class Joining extends AbstractState {
 
     // key: (data, how many replicas confirmed it)
     private final HashMap<Integer, SendableData> receivedData = new HashMap<>();
-    private final Ring<EditableBoolean> responded = new Ring<>();
+    private final Ring<Editable<Boolean>> responded = new Ring<>();
     private final int reqId;
 
     /**
@@ -50,8 +39,8 @@ public class Joining extends AbstractState {
         this.reqId = node.getFreshRequestId();
         this.phase = JoinPhase.BOOTSTRAP;
         this.mainActorRef = mainActorRef;
-        members.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
-        members.scheduleSendTimeoutToMyself(reqId);
+        node.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
+        node.scheduleTimeout(reqId);
     }
 
     @Override
@@ -59,54 +48,63 @@ public class Joining extends AbstractState {
         return NodeState.JOINING;
     }
 
+    // HANDLERS
+
     @Override
+    public AbstractState handle(Serializable message) {
+        return switch (message) {
+            case NodeMsg.BootstrapResponse msg -> handleBootstrapResponse(msg);
+            case NodeMsg.Timeout msg -> handleTimeout(msg);
+            case NodeMsg.ResponsabilityResponse msg -> handleResponsabilityResponse(msg);
+            default -> log_unhandled(message);
+        };
+    }
+
     protected AbstractState handleBootstrapResponse(NodeMsg.BootstrapResponse msg) {
         if (msg.requestId() != reqId || phase != JoinPhase.BOOTSTRAP)
             return ignore();
 
-        members.setMemberList(msg.updatedMembers());
+        members.setMembers(msg.updatedMembers());
         phase = JoinPhase.RESPONSIBILITIES;
 
         List<ActorRef<Message>> toCommunicate = members.getNodeToCommunicateForJoin();
         createResponded(msg.updatedMembers(), new HashSet<>(toCommunicate));
 
-        members.sendTo(toCommunicate.stream(), new NodeMsg.ResponsabilityRequest(reqId, members.getSelfId()));
+        node.sendTo(toCommunicate.stream(), new NodeMsg.ResponsabilityRequest(reqId, node.id()));
         return keepSameState();
     }
 
-    private void createResponded(Map<Integer, ActorRef<Message>> otherNodes, Set<ActorRef<Message>> toCommunicate) {
-        HashMap<Integer, EditableBoolean> map = new HashMap<>();
-        for (var entry : otherNodes.entrySet()) {
-            boolean communicate = toCommunicate.contains(entry.getValue());
-            map.put(entry.getKey(), new EditableBoolean(!communicate));
-        }
-
-        responded.replaceAll(map);
-    }
-
-    @Override
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
         if (msg.operationId() != reqId)
             return ignore();
 
-        members.sendTo(mainActorRef, new ControlMsg.JoinAck(false));
-        return new Initial(super.node);
+        // Failed and as such exit
+        node.sendTo(mainActorRef, new ControlMsg.JoinAck(false));
+        return new Left(super.node);
     }
 
-    @Override
     protected AbstractState handleResponsabilityResponse(NodeMsg.ResponsabilityResponse msg) {
         if (msg.requestId() != reqId || phase != JoinPhase.RESPONSIBILITIES)
             return ignore();
 
         addData(msg.senderId(), msg.data());
 
-        if (enoughResponded()) {
-            System.err.println(responded.getHashMap());
+        if (enoughResponded())
             return completeJoin();
-        }
-
 
         return keepSameState();
+    }
+
+    // PRIVATE METHODS
+
+    private void createResponded(Map<Integer, ActorRef<Message>> otherNodes, Set<ActorRef<Message>> toCommunicate) {
+        HashMap<Integer, Editable<Boolean>> map = new HashMap<>();
+        for (var entry : otherNodes.entrySet()) {
+            boolean communicate = toCommunicate.contains(entry.getValue());
+            map.put(entry.getKey(), new Editable<>(!communicate));
+        }
+
+        responded.replaceAll(map);
     }
 
     private boolean enoughResponded() {
@@ -135,8 +133,8 @@ public class Joining extends AbstractState {
         for (var entry : receivedData.entrySet())
             storage.put(entry.getKey(), entry.getValue());
 
-        members.sendToAll(new NotifyMsg.NodeJoined(members.getSelfId()));
-        members.sendTo(mainActorRef, new ControlMsg.JoinAck(true));
+        node.sendToAll(new NotifyMsg.NodeJoined(node.id()));
+        node.sendTo(mainActorRef, new ControlMsg.JoinAck(true));
         return new Normal(super.node);
     }
 }

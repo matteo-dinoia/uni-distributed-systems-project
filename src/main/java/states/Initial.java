@@ -1,9 +1,9 @@
 package states;
 
+import actor.NodeState;
+import actor.node.Node;
 import messages.client.StatusMsg;
 import messages.control.ControlMsg;
-import node.Node;
-import node.NodeState;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -27,14 +27,12 @@ public class Initial extends AbstractState {
         };
     }
 
-    @Override
     protected AbstractState handleInitialMembers(StatusMsg.InitialMembers msg) {
-        members.setMemberList(new HashMap<>(msg.initial()));
-        members.sendTo(sender(), new ControlMsg.InitialMembersAck());
+        members.setMembers(new HashMap<>(msg.initial()));
+        node.sendTo(sender(), new ControlMsg.InitialMembersAck());
         return new Normal(super.node);
     }
 
-    @Override
     protected AbstractState handleJoin(StatusMsg.Join msg) {
         return new Joining(super.node, msg.bootstrappingPeer(), sender());
     }

@@ -1,8 +1,8 @@
-package node;
+package actor.node.storage;
 
 import akka.actor.typed.ActorRef;
 import messages.Message;
-import utils.Pair;
+import utils.structs.Pair;
 
 import java.io.Serializable;
 

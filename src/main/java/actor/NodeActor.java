@@ -1,5 +1,6 @@
-package node;
+package actor;
 
+import actor.node.Node;
 import akka.actor.typed.Behavior;
 import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
@@ -32,20 +33,20 @@ public class NodeActor extends AbstractBehavior<Message> {
     private Behavior<Message> handle(Message msg) {
         var nextState = state.handle(msg.sender(), msg.content());
         if (nextState == null) {
-            System.err.println("[FATAL] Panic on node " + node.members().getSelfId());
+            System.err.println("[FATAL] Panic on node " + node.id());
             return Behaviors.stopped();
         }
 
         NodeState curr = this.state.getNodeRepresentation();
         NodeState next = nextState.getNodeRepresentation();
         if (!curr.isValidChange(next)) {
-            System.err.println("[FATAL] Invalid state transaction in node " + node.members().getSelfId() +
+            System.err.println("[FATAL] Invalid state transaction in node " + node.id() +
                     " from " + curr + " to " + next);
             return Behaviors.stopped();
         }
 
         if (curr != next)
-            Utils.debugPrint(" •  STATE CHANGED in node " + node.members().getSelfId() +
+            Utils.debugPrint(" •  STATE CHANGED in node " + node.id() +
                     " from " + curr + " to " + next);
 
         this.state = nextState;

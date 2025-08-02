@@ -1,6 +1,6 @@
 package messages.node_operation;
 
-import node.SendableData;
+import actor.node.storage.SendableData;
 
 import java.io.Serializable;
 

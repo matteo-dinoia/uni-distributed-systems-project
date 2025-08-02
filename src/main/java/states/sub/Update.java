@@ -1,5 +1,7 @@
 package states.sub;
 
+import actor.NodeState;
+import actor.node.Node;
 import akka.actor.typed.ActorRef;
 import messages.Message;
 import messages.client.DataMsg;
@@ -7,12 +9,11 @@ import messages.client.ResponseMsgs;
 import messages.control.ControlMsg;
 import messages.node_operation.NodeDataMsg;
 import messages.node_operation.NodeMsg;
-import node.Node;
-import node.NodeState;
 import states.AbstractState;
-import states.Normal;
+import states.Left;
 import utils.Config;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.stream.Stream;
@@ -46,28 +47,39 @@ public class Update extends AbstractState {
         initiateReadLockPhase();
     }
 
-    @Override
-    public NodeState getNodeRepresentation() {
-        return NodeState.SUB;
-    }
-
-
     /**
      * Phase 1: Send a LockRequest to all replicas responsible for this key,
      * then schedule a timeout for the entire update operation.
      */
     private void initiateReadLockPhase() {
         // Phase 1: request read-lock from all responsible replicas
-        members.sendToDataResponsible(key, new NodeDataMsg.WriteLockRequest(requestId, key));
-        members.scheduleSendTimeoutToMyself(requestId);
+        node.sendToResponsible(key, new NodeDataMsg.WriteLockRequest(requestId, key));
+        node.scheduleTimeout(requestId);
     }
 
+    @Override
+    public NodeState getNodeRepresentation() {
+        return NodeState.SUB;
+    }
+
+    // HANDLERS
+
+    @Override
+    public AbstractState handle(Serializable message) {
+        return switch (message) {
+            case NodeDataMsg.WriteLockGranted msg -> handleWriteLockGranted(msg);
+            case NodeDataMsg.WriteLockDenied msg -> handleWriteLockDenied(msg);
+            case NodeDataMsg.ReadLockAcked msg -> handleReadLockAcked(msg);
+            case NodeDataMsg.WriteAck msg -> handleWriteAck(msg);
+            case NodeMsg.Timeout msg -> handleTimeout(msg);
+            default -> log_unhandled(message);
+        };
+    }
 
     /**
      * Handle a granted lock response. Record the replica's DataElement,
      * and once have W locks, compute the new version and go ahed
      */
-    @Override
     protected AbstractState handleWriteLockGranted(NodeDataMsg.WriteLockGranted msg) {
         if (msg.requestId() != requestId || phase != Phase.WRITE_LOCK) return ignore();
 
@@ -81,12 +93,12 @@ public class Update extends AbstractState {
             newVer = lastVersionSeen + 1;
 
             // respond to the client with the write result
-            members.sendTo(client, new ResponseMsgs.WriteSucceeded(key, newValue, newVer));
+            node.sendTo(client, new ResponseMsgs.WriteSucceeded(key, newValue, newVer));
 
             // send the write request only to replicas that granted the lock
             var writeReq = new NodeDataMsg.ReadLockRequest(requestId, key);
             for (ActorRef<Message> ref : this.writeLockGranted)
-                members.sendTo(ref, writeReq);
+                node.sendTo(ref, writeReq);
         }
 
         return keepSameState();
@@ -95,7 +107,6 @@ public class Update extends AbstractState {
     /**
      * Handle a denied lock response. If too many replicas deny, abort the update.
      */
-    @Override
     protected AbstractState handleWriteLockDenied(NodeDataMsg.WriteLockDenied msg) {
         if (msg.requestId() != requestId) return ignore();
         if (phase != Phase.WRITE_LOCK) return ignore();
@@ -108,7 +119,6 @@ public class Update extends AbstractState {
         return keepSameState();
     }
 
-    @Override
     protected AbstractState handleReadLockAcked(NodeDataMsg.ReadLockAcked msg) {
         if (phase != Phase.READ_LOCK || msg.requestId() != requestId) return ignore();
 
@@ -116,7 +126,7 @@ public class Update extends AbstractState {
         if (readLockAcked.size() >= writeLockGranted.size()) {
             phase = Phase.WRITE_AND_RELEASE;
             assert newVer != null : "New version read for write operation is null";
-            members.sendTo(writeLockGranted.stream(), new NodeDataMsg.WriteRequest(requestId, key, newValue, newVer));
+            node.sendTo(writeLockGranted.stream(), new NodeDataMsg.WriteRequest(requestId, key, newValue, newVer));
         }
         return keepSameState();
     }
@@ -125,7 +135,6 @@ public class Update extends AbstractState {
      * Handle write acknowledgments from replicas. Once all
      * chosen replicas ack, release locks and return to Normal.
      */
-    @Override
     protected AbstractState handleWriteAck(NodeDataMsg.WriteAck msg) {
         if (phase != Phase.WRITE_AND_RELEASE || msg.requestId() != requestId) return ignore();
 
@@ -136,7 +145,6 @@ public class Update extends AbstractState {
         return keepSameState();
     }
 
-    @Override
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
         if (msg.operationId() != requestId) return ignore();
         // abort if only everything has been released
@@ -145,25 +153,27 @@ public class Update extends AbstractState {
         return keepSameState();
     }
 
+    // PRIVATE METHODS
+
     private AbstractState concludeOperation() {
         // Free all lock that didn't respond
-        members.sendTo(getToFree(true), new NodeDataMsg.LocksRelease(requestId, key));
+        node.sendTo(getToFree(true), new NodeDataMsg.LocksRelease(requestId, key));
 
         // That is only needed for the tester
-        members.sendTo(client, new ControlMsg.WriteFullyCompleted());
-        return new Normal(super.node);
+        node.sendTo(client, new ControlMsg.WriteFullyCompleted());
+        return new Left(super.node);
     }
 
     private AbstractState abortOperation() {
         // Free all lock not denied
-        members.sendTo(getToFree(false), new NodeDataMsg.LocksRelease(requestId, key));
+        node.sendTo(getToFree(false), new NodeDataMsg.LocksRelease(requestId, key));
 
-        members.sendTo(client, new ResponseMsgs.WriteTimeout(key));
-        return new Normal(super.node);
+        node.sendTo(client, new ResponseMsgs.WriteTimeout(key));
+        return new Left(super.node);
     }
 
     private Stream<ActorRef<Message>> getToFree(boolean successfulRead) {
-        var res = new ArrayList<>(members.getResponsibleForData(key));
+        var res = new ArrayList<>(members.getResponsibles(key));
 
         if (successfulRead)
             res.removeAll(writeLockGranted);

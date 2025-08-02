@@ -1,4 +1,5 @@
-package utils;
+package utils.structs;
+
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -89,7 +90,7 @@ public class Ring<T> {
         old.right.left = old.left;
     }
 
-    public HashMap<Integer, T> getHashMap() {
+    public Map<Integer, T> getMap() {
         HashMap<Integer, T> res = new HashMap<>();
         for (var entry : ring.entrySet())
             res.put(entry.getKey(), entry.getValue().value);
@@ -144,22 +145,5 @@ public class Ring<T> {
         }
 
         return true;
-    }
-
-    /// Not inclusive
-    @SuppressWarnings("unused")
-    public int circularDistance(int start, int end) {
-        RingNode<T> curr = ring.get(start);
-        RingNode<T> endPoint = ring.get(end);
-        assert curr != null && endPoint != null
-                : "Computing circular distance of not existent values";
-
-        int counter = 0;
-        while (curr != endPoint) {
-            curr = curr.right;
-            counter++;
-        }
-
-        return counter;
     }
 }

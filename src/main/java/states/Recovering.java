@@ -1,11 +1,13 @@
 package states;
 
+import actor.NodeState;
+import actor.node.Node;
 import akka.actor.typed.ActorRef;
 import messages.Message;
 import messages.control.ControlMsg;
 import messages.node_operation.NodeMsg;
-import node.Node;
-import node.NodeState;
+
+import java.io.Serializable;
 
 public class Recovering extends AbstractState {
     private final int reqId;
@@ -18,33 +20,42 @@ public class Recovering extends AbstractState {
         sendInitialMsg(bootstrapPeer);
     }
 
+    private void sendInitialMsg(ActorRef<Message> bootstrapPeer) {
+        node.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
+        node.scheduleTimeout(reqId);
+    }
+
     @Override
     public NodeState getNodeRepresentation() {
         return NodeState.RECOVERING;
     }
 
-    private void sendInitialMsg(ActorRef<Message> bootstrapPeer) {
-        members.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
-        members.scheduleSendTimeoutToMyself(reqId);
-    }
+    // HANDLERS
 
     @Override
+    public AbstractState handle(Serializable message) {
+        return switch (message) {
+            case NodeMsg.BootstrapResponse msg -> handleBootstrapResponse(msg);
+            case NodeMsg.Timeout msg -> handleTimeout(msg);
+            default -> log_unhandled(message);
+        };
+    }
+
     protected AbstractState handleBootstrapResponse(NodeMsg.BootstrapResponse msg) {
         if (msg.requestId() != reqId)
             return ignore();
 
-        members.setMemberList(msg.updatedMembers());
-        storage.discardKeysNotUnderResponsibility(members);
+        members.setMembers(msg.updatedMembers());
+        storage.discardNotResponsible(members);
 
-        members.sendTo(mainActorRef, new ControlMsg.RecoverAck(true));
+        node.sendTo(mainActorRef, new ControlMsg.RecoverAck(true));
         return new Normal(super.node);
     }
 
-    @Override
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
         if (msg.operationId() != reqId)
             return ignore();
-        members.sendTo(mainActorRef, new ControlMsg.RecoverAck(false));
+        node.sendTo(mainActorRef, new ControlMsg.RecoverAck(false));
         return new Crashed(super.node);
     }
 

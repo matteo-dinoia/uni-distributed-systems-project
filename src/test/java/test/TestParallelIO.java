@@ -80,12 +80,12 @@ public class TestParallelIO {
         final int key = 2;
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
             assert test.write(test.getClient(0), key, 2);
-            String written = test.getClient(0).latestValueOf(1);
+            String written = test.getClient(0).latestValueOf(key);
 
             var res = test.clientOperations(Map.ofEntries(
                     read(test.getClient(0), key, 2),
                     read(test.getClient(1), key, 3),
-                    read(test.getClient(1), key, 4)
+                    read(test.getClient(2), key, 4)
             ));
 
             assert res.size() == 3;

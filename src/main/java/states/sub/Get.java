@@ -1,18 +1,19 @@
 package states.sub;
 
+import actor.NodeState;
+import actor.node.Node;
+import actor.node.storage.SendableData;
 import akka.actor.typed.ActorRef;
 import messages.Message;
 import messages.client.DataMsg;
 import messages.client.ResponseMsgs;
 import messages.node_operation.NodeDataMsg;
 import messages.node_operation.NodeMsg;
-import node.Node;
-import node.NodeState;
-import node.SendableData;
 import states.AbstractState;
-import states.Normal;
+import states.Left;
 import utils.Config;
 
+import java.io.Serializable;
 import java.util.HashSet;
 
 public class Get extends AbstractState {
@@ -35,17 +36,28 @@ public class Get extends AbstractState {
         handleInitialMsg(msg);
     }
 
+    public void handleInitialMsg(DataMsg.Get msg) {
+        node.sendToResponsible(msg.key(), new NodeDataMsg.ReadRequest(requestId, msg.key()));
+        node.scheduleTimeout(requestId);
+    }
+
     @Override
     public NodeState getNodeRepresentation() {
         return NodeState.SUB;
     }
 
-    public void handleInitialMsg(DataMsg.Get msg) {
-        members.sendToDataResponsible(msg.key(), new NodeDataMsg.ReadRequest(requestId, msg.key()));
-        members.scheduleSendTimeoutToMyself(requestId);
-    }
+    // HANDLERS
 
     @Override
+    public AbstractState handle(Serializable message) {
+        return switch (message) {
+            case NodeDataMsg.ReadResponse msg -> handleReadResponse(msg);
+            case NodeDataMsg.ReadImpossibleForLock msg -> handleReadImpossibleForLock(msg);
+            case NodeMsg.Timeout msg -> handleTimeout(msg);
+            default -> log_unhandled(message);
+        };
+    }
+
     protected AbstractState handleReadResponse(NodeDataMsg.ReadResponse msg) {
         if (msg.requestId() != requestId) return ignore();
 
@@ -55,40 +67,40 @@ public class Get extends AbstractState {
             latest = msg.element();
 
         if (checkFinished())
-            return new Normal(super.node);
+            return new Left(super.node);
         return keepSameState();
     }
 
-    @Override
     protected AbstractState handleReadImpossibleForLock(NodeDataMsg.ReadImpossibleForLock msg) {
         if (msg.requestId() != requestId) return ignore();
 
         respondedNegatively.add(sender());
         if (Config.N - respondedNegatively.size() < Config.R) {
-            members.sendTo(client, new ResponseMsgs.ReadResultFailed(key));
-            return new Normal(super.node);
+            node.sendTo(client, new ResponseMsgs.ReadResultFailed(key));
+            return new Left(super.node);
         }
         return keepSameState();
     }
 
-    @Override
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
         if (msg.operationId() != requestId) return ignore();
 
-        members.sendTo(client, new ResponseMsgs.ReadTimeout(key));
-        return new Normal(super.node);
+        node.sendTo(client, new ResponseMsgs.ReadTimeout(key));
+        return new Left(super.node);
     }
+
+    // PRIVATE METHODS
 
     private boolean checkFinished() {
         if (respondedPositively.size() < Config.R)
             return false;
 
         if (latest == null || (lastVersionSeen != null && latest.version() < lastVersionSeen))
-            members.sendTo(client, new ResponseMsgs.ReadResultFailed(key));
+            node.sendTo(client, new ResponseMsgs.ReadResultFailed(key));
         else if (latest.version() < 0) // case of entry not existent
-            members.sendTo(client, new ResponseMsgs.ReadResultInexistentValue(key));
+            node.sendTo(client, new ResponseMsgs.ReadResultInexistentValue(key));
         else
-            members.sendTo(client, new ResponseMsgs.ReadSucceeded(key, latest.value(), latest.version()));
+            node.sendTo(client, new ResponseMsgs.ReadSucceeded(key, latest.value(), latest.version()));
         return true;
 
     }

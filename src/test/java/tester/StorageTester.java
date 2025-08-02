@@ -1,10 +1,10 @@
 package tester;
 
-import node.DataElement;
-import node.SendableData;
+import actor.node.storage.DataElement;
+import actor.node.storage.SendableData;
 import utils.Config;
-import utils.Pair;
-import utils.Ring;
+import utils.structs.Pair;
+import utils.structs.Ring;
 
 import java.util.HashMap;
 import java.util.HashSet;

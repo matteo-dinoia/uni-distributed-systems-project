@@ -1,8 +1,8 @@
 package messages.node_operation;
 
+import actor.node.storage.SendableData;
 import akka.actor.typed.ActorRef;
 import messages.Message;
-import node.SendableData;
 
 import java.io.Serializable;
 import java.util.Collections;

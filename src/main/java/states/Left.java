@@ -1,7 +1,7 @@
 package states;
 
-import node.Node;
-import node.NodeState;
+import actor.NodeState;
+import actor.node.Node;
 
 import java.io.Serializable;
 

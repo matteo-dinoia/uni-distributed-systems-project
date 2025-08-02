@@ -1,8 +1,8 @@
 package states;
 
+import actor.NodeState;
+import actor.node.Node;
 import messages.client.StatusMsg;
-import node.Node;
-import node.NodeState;
 
 import java.io.Serializable;
 
@@ -24,7 +24,6 @@ public class Crashed extends AbstractState {
         };
     }
 
-    @Override
     protected AbstractState handleRecover(StatusMsg.Recover msg) {
         return new Recovering(super.node, sender(), msg.bootstrappingPear());
     }
