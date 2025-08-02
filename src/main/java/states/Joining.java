@@ -8,7 +8,6 @@ import messages.Message;
 import messages.control.ControlMsg;
 import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
-import utils.Config;
 import utils.structs.Editable;
 import utils.structs.Ring;
 
@@ -39,8 +38,9 @@ public class Joining extends AbstractState {
         this.reqId = node.getFreshRequestId();
         this.phase = JoinPhase.BOOTSTRAP;
         this.mainActorRef = mainActorRef;
-        node.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
+
         node.scheduleTimeout(reqId);
+        node.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
     }
 
     @Override
@@ -108,7 +108,7 @@ public class Joining extends AbstractState {
     }
 
     private boolean enoughResponded() {
-        return responded.verifyNValidInMSizedWindows(Config.R, Config.N, x -> x.valid);
+        return responded.verifyNValidInMSizedWindows(config.R(), config.N(), x -> x.valid);
     }
 
     private void addData(int senderId, Map<Integer, SendableData> dataList) {

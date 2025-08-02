@@ -11,7 +11,6 @@ import messages.node_operation.NodeDataMsg;
 import messages.node_operation.NodeMsg;
 import states.AbstractState;
 import states.Left;
-import utils.Config;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -25,6 +24,7 @@ public class Update extends AbstractState {
     private final int requestId;
     private final int key;
     private final String newValue;
+    private final Integer clientLastVersionSeen;
     private final ActorRef<Message> client;
     private Phase phase;
     // Phase 1: track which replicas granted or denied write locks
@@ -43,6 +43,7 @@ public class Update extends AbstractState {
         this.client = client;
         this.key = msg.key();
         this.newValue = msg.newValue();
+        this.clientLastVersionSeen = msg.lastVersionSeen();
         this.phase = Phase.WRITE_LOCK;
         initiateReadLockPhase();
     }
@@ -53,8 +54,8 @@ public class Update extends AbstractState {
      */
     private void initiateReadLockPhase() {
         // Phase 1: request read-lock from all responsible replicas
-        node.sendToResponsible(key, new NodeDataMsg.WriteLockRequest(requestId, key));
         node.scheduleTimeout(requestId);
+        node.sendToResponsible(key, new NodeDataMsg.WriteLockRequest(requestId, key));
     }
 
     @Override
@@ -88,11 +89,13 @@ public class Update extends AbstractState {
         if (lastVersionSeen == null || lastVersionSeen < msg.version())
             lastVersionSeen = msg.version();
 
-        if (writeLockGranted.size() >= Config.W) {
+        if (writeLockGranted.size() >= config.W()) {
             phase = Phase.READ_LOCK;
             newVer = lastVersionSeen + 1;
 
-            // respond to the client with the write result
+            // respond to the client with the write result (abort if the version is older)
+            if (this.clientLastVersionSeen != null && newVer < this.clientLastVersionSeen)
+                abortOperation();
             node.sendTo(client, new ResponseMsgs.WriteSucceeded(key, newValue, newVer));
 
             // send the write request only to replicas that granted the lock
@@ -114,7 +117,7 @@ public class Update extends AbstractState {
         writeLockDenied.add(sender());
 
         // If denials exceed N - W, we can never get W locks then abort
-        if (Config.N - writeLockDenied.size() < Config.W)
+        if (config.N() - writeLockDenied.size() < config.W())
             return abortOperation();
         return keepSameState();
     }

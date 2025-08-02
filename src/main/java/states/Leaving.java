@@ -9,7 +9,6 @@ import messages.Message;
 import messages.control.ControlMsg;
 import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
-import utils.Config;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -35,8 +34,8 @@ public class Leaving extends AbstractState {
         this.reqId = node.getFreshRequestId();
         this.mainActorRef = mainActorRef;
 
-        contactedNodes = sendDataLeaving();
         node.scheduleTimeout(reqId);
+        contactedNodes = sendDataLeaving();
     }
 
     private Set<ActorRef<Message>> sendDataLeaving() {
@@ -99,7 +98,7 @@ public class Leaving extends AbstractState {
     // PRIVATE METHODS
 
     private boolean allKeysConfirmed() {
-        return ackCounts.values().stream().allMatch(count -> count >= Config.W);
+        return ackCounts.values().stream().allMatch(count -> count >= config.W());
     }
 
     private AbstractState concludeLeave() {
