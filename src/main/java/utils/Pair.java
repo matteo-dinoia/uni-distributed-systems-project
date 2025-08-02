@@ -2,6 +2,7 @@ package utils;
 
 import java.util.Objects;
 
+@SuppressWarnings("unused")
 public class Pair<L, R> {
     private L left;
     private R right;

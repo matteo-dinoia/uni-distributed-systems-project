@@ -192,6 +192,7 @@ public class Normal extends AbstractState {
 
     @Override
     protected AbstractState handleResponsabilityRequest(NodeMsg.ResponsabilityRequest msg) {
+
         HashMap<Integer, SendableData> toSend = new HashMap<>();
         for (Integer key : storage.getAllKeys()) {
             if (members.willBeResponsible(msg.newNodeId(), sender(), key))

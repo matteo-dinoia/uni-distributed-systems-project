@@ -26,24 +26,12 @@ public class DataElement implements Serializable {
     }
 
     public SendableData sendable() {
+        assert !isReadLocked() : "Trying to read when read locked";
         return new SendableData(this.value, this.version);
     }
 
     public SendableData.Debug debugSendable() {
         return new SendableData.Debug(this.value, this.version, this.lockStatus);
-    }
-
-    /**
-     * Returns the stored value, unless the element is locked for writing or read-locked.
-     *
-     * @throws IllegalStateException if a read or write lock is held
-     */
-    public String getValue() {
-        if (this.isWriteLocked())
-            throw new IllegalStateException("Cannot read while write-lock is held");
-        if (this.isReadLocked())
-            throw new IllegalStateException("DataElement is read-locked");
-        return value;
     }
 
     public int getVersion() {
@@ -69,6 +57,7 @@ public class DataElement implements Serializable {
         return true;
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isReadLocked() {
         return this.lockStatus == LockStatus.READ_WRITE_LOCKED;
     }

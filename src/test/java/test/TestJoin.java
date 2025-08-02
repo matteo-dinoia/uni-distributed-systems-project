@@ -3,8 +3,8 @@ package test;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import node.NodeState;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
+import tester.StorageTester;
 import tester.Tester;
 
 import java.util.Set;
@@ -21,9 +21,7 @@ public class TestJoin {
         }
     }
 
-    // TODO FLAKY
     @Test
-    @Ignore
     public void joinJoinJoinWithWrite() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
             assert test.write(null, 6, 5);
@@ -32,12 +30,24 @@ public class TestJoin {
             storages.assertLatest(6, 0);
 
             assert test.join(6);
-            assert test.join(7);
-            assert test.join(8);
-            assert test.join(9);
-
             storages = test.getNodeStorages();
             storages.assertValid();
+            storages.assertLatest(6, 0);
+
+            assert test.join(7);
+            storages = test.getNodeStorages();
+            storages.assertValid();
+            storages.assertLatest(6, 0);
+
+            assert test.join(8);
+            storages = test.getNodeStorages();
+            storages.assertValid();
+            storages.assertLatest(6, 0);
+
+            assert test.join(9);
+            storages = test.getNodeStorages();
+            storages.assertValid();
+
             storages.assertLatest(6, 0);
 
             assert test.getNodeState(6) == NodeState.NORMAL;
@@ -70,35 +80,15 @@ public class TestJoin {
     }
 
     @Test
-    public void joinThreeOtherDown() {
+    public void joinThreeOtherDownFail() {
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
             test.crash(1);
             test.crash(2);
-            test.crash(4);
-            assert test.join(6);
-        }
-    }
-
-    @Test
-    public void joinThreeOtherDown2() {
-        try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
-            test.crash(1);
-            test.crash(2);
-            test.crash(3);
-            assert test.join(6);
-        }
-    }
-
-    @Test
-    public void joinFourOtherDownFail() {
-        try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
-            test.crash(1);
-            test.crash(2);
-            test.crash(3);
             test.crash(4);
             assert !test.join(6);
         }
     }
+
 
     @Test
     public void joinWriteOneOtherDown() {
@@ -136,23 +126,29 @@ public class TestJoin {
         }
     }
 
-    // TODO FLAKY
     @Test
-    @Ignore
     public void joinMultipleWriteOneOtherDownRecover() {
+        StorageTester storages;
         try (Tester test = new Tester(testKit, Set.of(1, 2, 3, 4, 5))) {
             assert test.write(null, 2, 1);
             assert test.write(null, 3, 2);
             assert test.write(null, 1, 3);
             assert test.write(null, 3, 4);
             assert test.write(null, 2, 5);
-
+            storages = test.getNodeStorages();
+            storages.assertValid();
+            
             test.crash(1);
+            storages = test.getNodeStorages();
+            storages.assertValid(Set.of(1));
             assert test.join(6);
+            storages = test.getNodeStorages();
+            storages.assertValid(Set.of(1));
+
             assert test.recover(1);
 
             // Still valid
-            var storages = test.getNodeStorages();
+            storages = test.getNodeStorages();
             storages.assertValid();
             storages.assertLatest(2, 1);
             storages.assertLatest(3, 1);

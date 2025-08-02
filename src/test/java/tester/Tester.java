@@ -27,6 +27,7 @@ import static java.util.Map.entry;
 
 public class Tester implements AutoCloseable {
     private final ActorTestKit testKit;
+    private final HashMap<Integer, Client> clients = new HashMap<>();
     private final Ring<ActorRef<Message>> group = new Ring<>();
     private static final Duration TIMEOUT_PROBE = Config.TIMOUT_PROBE;
 
@@ -77,6 +78,11 @@ public class Tester implements AutoCloseable {
 
     public Client getClient() {
         return new Client(getProbe());
+    }
+
+    ///  Get client by id or create a new
+    public Client getClient(int clientId) {
+        return clients.computeIfAbsent(clientId, x -> new Client(testKit.createTestProbe(x + "named")));
     }
 
     // GET DEBUG INFO
@@ -139,10 +145,9 @@ public class Tester implements AutoCloseable {
             ClientOperation op = operation.getValue();
 
             if (op.isRead()) {
-                Integer lastVersion = client.getKeyLatestVersion(op.key());
+                Integer lastVersion = client.latestVersionOf(op.key());
                 send(client.getReceiver(), getNode(op.nodeId()), new DataMsg.Get(op.key(), lastVersion));
             } else {
-
                 send(client.getReceiver(), getNode(op.nodeId()), new DataMsg.Update(op.key(), op.newValue()));
             }
         }
@@ -161,7 +166,7 @@ public class Tester implements AutoCloseable {
             switch (content) {
                 case ResponseMsgs.ReadSucceeded msg -> {
                     assert isRead : "Unexpected Message received";
-                    client.setKeyLatestVersion(msg.key(), msg.version());
+                    client.setKeyLatestVersion(msg.key(), new SendableData(msg.value(), msg.version()));
                     successfulOp.put(client, operation);
                 }
                 case ResponseMsgs.ReadResultFailed _ -> {
@@ -176,7 +181,7 @@ public class Tester implements AutoCloseable {
                 }
                 case ResponseMsgs.WriteSucceeded msg -> {
                     assert !isRead : "Unexpected Message received";
-                    client.setKeyLatestVersion(msg.key(), msg.newVersion());
+                    client.setKeyLatestVersion(msg.key(), new SendableData(msg.newValue(), msg.newVersion()));
                     successfulOp.put(client, operation);
                     succWrite = true;
                 }

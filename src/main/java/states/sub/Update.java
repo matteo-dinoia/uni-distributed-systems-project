@@ -115,7 +115,7 @@ public class Update extends AbstractState {
         readLockAcked.add(sender());
         if (readLockAcked.size() >= writeLockGranted.size()) {
             phase = Phase.WRITE_AND_RELEASE;
-            if (newVer == null) return panic(""); //TODO
+            assert newVer != null : "New version read for write operation is null";
             members.sendTo(writeLockGranted.stream(), new NodeDataMsg.WriteRequest(requestId, key, newValue, newVer));
         }
         return keepSameState();
@@ -149,7 +149,7 @@ public class Update extends AbstractState {
         // Free all lock that didn't respond
         members.sendTo(getToFree(true), new NodeDataMsg.LocksRelease(requestId, key));
 
-        // That is only needed for the tester (TODO ADD disabler)
+        // That is only needed for the tester
         members.sendTo(client, new ControlMsg.WriteFullyCompleted());
         return new Normal(super.node);
     }

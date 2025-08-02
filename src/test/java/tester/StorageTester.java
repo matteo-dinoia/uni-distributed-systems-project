@@ -39,7 +39,6 @@ public record StorageTester(Map<Integer, Map<Integer, SendableData.Debug>> nodes
         }
     }
 
-    // OPTIONAL TODO
     public void assertNoNegativeVersion() {
         for (var elem : this.nodesData.entrySet()) {
             int nodeId = elem.getKey();
@@ -60,19 +59,22 @@ public record StorageTester(Map<Integer, Map<Integer, SendableData.Debug>> nodes
         }
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean isResponsabile(Ring<Integer> group, int key, Integer node) {
         var responsible = group.getInterval(group.getCeilKey(key), 0, Config.N - 1);
         return responsible.contains(node);
     }
 
-    // TODO CLEAR LATER
-    public void assertNoValueOutsideResponsability(Set<Integer> crashedNode) {
-        Ring<Integer> group = new Ring<>();
+    private Ring<Integer> getRing() {
         HashMap<Integer, Integer> hash = new HashMap<>();
         for (Integer node : nodesData.keySet())
             hash.put(node, node);
-        group.replaceAll(hash);
 
+        return new Ring<>(hash);
+    }
+
+    public void assertNoValueOutsideResponsability(Set<Integer> crashedNode) {
+        Ring<Integer> ring = getRing();
 
         for (var elem : this.nodesData.entrySet()) {
             Integer nodeId = elem.getKey();
@@ -83,20 +85,29 @@ public record StorageTester(Map<Integer, Map<Integer, SendableData.Debug>> nodes
 
             var storage = elem.getValue();
 
-            var invalids = storage.keySet().stream().filter(key -> !isResponsabile(group, key, nodeId));
+            var invalids = storage.keySet().stream().filter(key -> !isResponsabile(ring, key, nodeId));
             var invalidList = invalids.toList();
             assert invalidList.isEmpty() : "Nodes " + nodeId + " contains values outside its responsability " + invalidList;
         }
     }
 
     private void assertNewVersionQuorum() {
+        Ring<Integer> ring = getRing();
         // Contains key -> maxVersion, 3 contains values outside its responsability [2] count
         Map<Integer, Pair<Integer, Integer>> maxVersionPerKey = new HashMap<>();
 
-        for (var storage : this.nodesData.values()) {
+        for (var entry2 : this.nodesData.entrySet()) {
+            var nodeId = entry2.getKey();
+            var storage = entry2.getValue();
+
+
             for (var entry : storage.entrySet()) {
                 int key = entry.getKey();
                 int version = entry.getValue().version();
+
+                // Only valid for some node crashed
+                if (!isResponsabile(ring, key, nodeId))
+                    continue;
 
                 var max = maxVersionPerKey.get(key);
                 if (max == null || max.getLeft() < version)
@@ -138,7 +149,6 @@ public record StorageTester(Map<Integer, Map<Integer, SendableData.Debug>> nodes
 
         }
 
-        // TODO split in 2 cases
         assert maxVersion == version : "The current version is " + maxVersion + " while expecting " + version;
         assert nLatest >= Config.W : "Latest version of key " + key + " has broken quorum (or wrong version)";
     }
