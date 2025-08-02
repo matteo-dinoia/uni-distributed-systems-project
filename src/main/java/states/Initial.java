@@ -27,14 +27,12 @@ public class Initial extends AbstractState {
         };
     }
 
-    @Override
     protected AbstractState handleInitialMembers(StatusMsg.InitialMembers msg) {
         members.setMembers(new HashMap<>(msg.initial()));
         node.sendTo(sender(), new ControlMsg.InitialMembersAck());
         return new Normal(super.node);
     }
 
-    @Override
     protected AbstractState handleJoin(StatusMsg.Join msg) {
         return new Joining(super.node, msg.bootstrappingPeer(), sender());
     }

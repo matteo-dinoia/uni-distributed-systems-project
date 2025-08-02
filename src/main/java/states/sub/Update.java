@@ -13,6 +13,7 @@ import states.AbstractState;
 import states.Left;
 import utils.Config;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.stream.Stream;
@@ -46,12 +47,6 @@ public class Update extends AbstractState {
         initiateReadLockPhase();
     }
 
-    @Override
-    public NodeState getNodeRepresentation() {
-        return NodeState.SUB;
-    }
-
-
     /**
      * Phase 1: Send a LockRequest to all replicas responsible for this key,
      * then schedule a timeout for the entire update operation.
@@ -62,12 +57,29 @@ public class Update extends AbstractState {
         node.scheduleTimeout(requestId);
     }
 
+    @Override
+    public NodeState getNodeRepresentation() {
+        return NodeState.SUB;
+    }
+
+    // HANDLERS
+
+    @Override
+    public AbstractState handle(Serializable message) {
+        return switch (message) {
+            case NodeDataMsg.WriteLockGranted msg -> handleWriteLockGranted(msg);
+            case NodeDataMsg.WriteLockDenied msg -> handleWriteLockDenied(msg);
+            case NodeDataMsg.ReadLockAcked msg -> handleReadLockAcked(msg);
+            case NodeDataMsg.WriteAck msg -> handleWriteAck(msg);
+            case NodeMsg.Timeout msg -> handleTimeout(msg);
+            default -> log_unhandled(message);
+        };
+    }
 
     /**
      * Handle a granted lock response. Record the replica's DataElement,
      * and once have W locks, compute the new version and go ahed
      */
-    @Override
     protected AbstractState handleWriteLockGranted(NodeDataMsg.WriteLockGranted msg) {
         if (msg.requestId() != requestId || phase != Phase.WRITE_LOCK) return ignore();
 
@@ -95,7 +107,6 @@ public class Update extends AbstractState {
     /**
      * Handle a denied lock response. If too many replicas deny, abort the update.
      */
-    @Override
     protected AbstractState handleWriteLockDenied(NodeDataMsg.WriteLockDenied msg) {
         if (msg.requestId() != requestId) return ignore();
         if (phase != Phase.WRITE_LOCK) return ignore();
@@ -108,7 +119,6 @@ public class Update extends AbstractState {
         return keepSameState();
     }
 
-    @Override
     protected AbstractState handleReadLockAcked(NodeDataMsg.ReadLockAcked msg) {
         if (phase != Phase.READ_LOCK || msg.requestId() != requestId) return ignore();
 
@@ -125,7 +135,6 @@ public class Update extends AbstractState {
      * Handle write acknowledgments from replicas. Once all
      * chosen replicas ack, release locks and return to Normal.
      */
-    @Override
     protected AbstractState handleWriteAck(NodeDataMsg.WriteAck msg) {
         if (phase != Phase.WRITE_AND_RELEASE || msg.requestId() != requestId) return ignore();
 
@@ -136,7 +145,6 @@ public class Update extends AbstractState {
         return keepSameState();
     }
 
-    @Override
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
         if (msg.operationId() != requestId) return ignore();
         // abort if only everything has been released
@@ -144,6 +152,8 @@ public class Update extends AbstractState {
             return abortOperation();
         return keepSameState();
     }
+
+    // PRIVATE METHODS
 
     private AbstractState concludeOperation() {
         // Free all lock that didn't respond

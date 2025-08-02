@@ -13,6 +13,7 @@ import states.AbstractState;
 import states.Left;
 import utils.Config;
 
+import java.io.Serializable;
 import java.util.HashSet;
 
 public class Get extends AbstractState {
@@ -35,17 +36,28 @@ public class Get extends AbstractState {
         handleInitialMsg(msg);
     }
 
-    @Override
-    public NodeState getNodeRepresentation() {
-        return NodeState.SUB;
-    }
-
     public void handleInitialMsg(DataMsg.Get msg) {
         node.sendToResponsible(msg.key(), new NodeDataMsg.ReadRequest(requestId, msg.key()));
         node.scheduleTimeout(requestId);
     }
 
     @Override
+    public NodeState getNodeRepresentation() {
+        return NodeState.SUB;
+    }
+
+    // HANDLERS
+
+    @Override
+    public AbstractState handle(Serializable message) {
+        return switch (message) {
+            case NodeDataMsg.ReadResponse msg -> handleReadResponse(msg);
+            case NodeDataMsg.ReadImpossibleForLock msg -> handleReadImpossibleForLock(msg);
+            case NodeMsg.Timeout msg -> handleTimeout(msg);
+            default -> log_unhandled(message);
+        };
+    }
+
     protected AbstractState handleReadResponse(NodeDataMsg.ReadResponse msg) {
         if (msg.requestId() != requestId) return ignore();
 
@@ -59,7 +71,6 @@ public class Get extends AbstractState {
         return keepSameState();
     }
 
-    @Override
     protected AbstractState handleReadImpossibleForLock(NodeDataMsg.ReadImpossibleForLock msg) {
         if (msg.requestId() != requestId) return ignore();
 
@@ -71,13 +82,14 @@ public class Get extends AbstractState {
         return keepSameState();
     }
 
-    @Override
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
         if (msg.operationId() != requestId) return ignore();
 
         node.sendTo(client, new ResponseMsgs.ReadTimeout(key));
         return new Left(super.node);
     }
+
+    // PRIVATE METHODS
 
     private boolean checkFinished() {
         if (respondedPositively.size() < Config.R)

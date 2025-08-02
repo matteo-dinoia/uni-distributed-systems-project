@@ -11,6 +11,7 @@ import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
 import utils.Config;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
@@ -21,15 +22,6 @@ public class Leaving extends AbstractState {
     private final ActorRef<Message> mainActorRef;
     private final Set<ActorRef<Message>> contactedNodes;
 
-    private Leaving(Node node, ActorRef<Message> mainActorRef) {
-        super(node);
-        this.reqId = node.getFreshRequestId();
-        this.mainActorRef = mainActorRef;
-
-        contactedNodes = sendDataLeaving();
-        node.scheduleTimeout(reqId);
-    }
-
     public static AbstractState enter(Node node, ActorRef<Message> mainActorRef) {
         Leaving leaving = new Leaving(node, mainActorRef);
         if (node.storage().getAllKeys().isEmpty())
@@ -38,9 +30,13 @@ public class Leaving extends AbstractState {
         return leaving;
     }
 
-    @Override
-    public NodeState getNodeRepresentation() {
-        return NodeState.LEAVING;
+    private Leaving(Node node, ActorRef<Message> mainActorRef) {
+        super(node);
+        this.reqId = node.getFreshRequestId();
+        this.mainActorRef = mainActorRef;
+
+        contactedNodes = sendDataLeaving();
+        node.scheduleTimeout(reqId);
     }
 
     private Set<ActorRef<Message>> sendDataLeaving() {
@@ -66,6 +62,21 @@ public class Leaving extends AbstractState {
     }
 
     @Override
+    public NodeState getNodeRepresentation() {
+        return NodeState.LEAVING;
+    }
+
+    // HANDLERS
+
+    @Override
+    public AbstractState handle(Serializable message) {
+        return switch (message) {
+            case NodeMsg.Timeout msg -> handleTimeout(msg);
+            case NodeMsg.PassResponsabilityResponse msg -> handlePassResponsabilityResponse(msg);
+            default -> log_unhandled(message);
+        };
+    }
+
     protected AbstractState handlePassResponsabilityResponse(NodeMsg.PassResponsabilityResponse msg) {
         if (msg.requestId() != reqId) return ignore();
 
@@ -79,12 +90,13 @@ public class Leaving extends AbstractState {
         return keepSameState();
     }
 
-    @Override
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
         if (msg.operationId() != reqId) return ignore();
 
         return rollbackLeave();
     }
+
+    // PRIVATE METHODS
 
     private boolean allKeysConfirmed() {
         return ackCounts.values().stream().allMatch(count -> count >= Config.W);

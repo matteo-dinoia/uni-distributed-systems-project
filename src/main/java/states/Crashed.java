@@ -24,7 +24,6 @@ public class Crashed extends AbstractState {
         };
     }
 
-    @Override
     protected AbstractState handleRecover(StatusMsg.Recover msg) {
         return new Recovering(super.node, sender(), msg.bootstrappingPear());
     }

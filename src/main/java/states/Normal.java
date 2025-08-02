@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Set;
 
 public class Normal extends AbstractState {
-    // Map client to its own controller
+    // Map operatio to its own substate controller
     public final HashMap<Integer, AbstractState> substates;
 
     public Normal(Node node) {
@@ -32,6 +32,7 @@ public class Normal extends AbstractState {
         return NodeState.NORMAL;
     }
 
+    // HANDLERS
 
     @Override
     public AbstractState handle(Serializable message) {
@@ -44,57 +45,26 @@ public class Normal extends AbstractState {
             case NodeDataMsg.WriteLockDenied msg -> handleSubstates(msg, msg.requestId());
             case NodeDataMsg.ReadLockAcked msg -> handleSubstates(msg, msg.requestId());
             case NodeDataMsg.WriteAck msg -> handleSubstates(msg, msg.requestId());
-            // Ignorable
+            // HANDLED
+            case StatusMsg.Crash msg -> handleCrash(msg);
+            case StatusMsg.Leave msg -> handleLeave(msg);
+            case NotifyMsg.NodeLeft msg -> handleNodeLeft(msg);
+            case NotifyMsg.NodeJoined msg -> handleNodeJoined(msg);
+            case DataMsg.Update msg -> handleUpdate(msg);
+            case DataMsg.Get msg -> handleGet(msg);
+            case NodeDataMsg.WriteLockRequest msg -> handleWriteLockRequest(msg);
+            case NodeDataMsg.LocksRelease msg -> handleLocksRelease(msg);
+            case NodeDataMsg.ReadLockRequest msg -> handleReadLockRequest(msg);
+            case NodeDataMsg.WriteRequest msg -> handleWriteRequest(msg);
+            case NodeDataMsg.ReadRequest msg -> handleReadRequest(msg);
+            case NodeMsg.BootstrapRequest msg -> handleBootstrapRequest(msg);
+            case NodeMsg.ResponsabilityRequest msg -> handleResponsabilityRequest(msg);
+            case NodeMsg.PassResponsabilityRequest msg -> handlePassResponsabilityRequest(msg);
+            case NodeMsg.RollbackPassResponsability msg -> handleRollbackPassResponsability(msg);
+            // IGNORED
             case NodeMsg.ResponsabilityResponse _ -> ignore();
-            // USE DEFAULT HANDLERS OR 'NORMAL' HANDLER
-            default -> super.handle(message);
+            default -> log_unhandled(message);
         };
-    }
-
-    @Override
-    protected AbstractState handleCrash(StatusMsg.Crash msg) {
-        if (!substates.isEmpty())
-            return panic("Crashing while still some operation open");
-
-        node.sendTo(sender(), new ControlMsg.CrashAck());
-        return new Crashed(super.node);
-    }
-
-    @Override
-    protected AbstractState handleLeave(StatusMsg.Leave msg) {
-        if (!substates.isEmpty())
-            return panic("Leaving while still some operation open");
-
-        return Leaving.enter(super.node, sender());
-    }
-
-    @Override
-    protected AbstractState handleNodeLeft(NotifyMsg.NodeLeft msg) {
-        members.removeMember(msg.actorId());
-        assert members.size() >= Config.N : "Not enough node left";
-        return keepSameState();
-    }
-
-    @Override
-    protected AbstractState handleNodeJoined(NotifyMsg.NodeJoined msg) {
-        members.addMember(msg.actorId(), sender());
-        storage.discardNotResponsible(members);
-        return keepSameState();
-    }
-
-
-    @Override
-    public AbstractState handleUpdate(DataMsg.Update msg) {
-        int reqId = node.getFreshRequestId();
-        substates.put(reqId, new Update(super.node, sender(), msg, reqId));
-        return keepSameState();
-    }
-
-    @Override
-    public AbstractState handleGet(DataMsg.Get msg) {
-        int reqId = node.getFreshRequestId();
-        substates.put(reqId, new Get(super.node, sender(), msg, reqId));
-        return keepSameState();
     }
 
     public AbstractState handleSubstates(Serializable msg, int requestId) {
@@ -112,7 +82,45 @@ public class Normal extends AbstractState {
         return keepSameState();
     }
 
-    @Override
+    protected AbstractState handleCrash(StatusMsg.Crash ignored) {
+        if (!substates.isEmpty())
+            return panic("Crashing while still some operation open");
+
+        node.sendTo(sender(), new ControlMsg.CrashAck());
+        return new Crashed(super.node);
+    }
+
+    protected AbstractState handleLeave(StatusMsg.Leave ignored) {
+        if (!substates.isEmpty())
+            return panic("Leaving while still some operation open");
+
+        return Leaving.enter(super.node, sender());
+    }
+
+    protected AbstractState handleNodeLeft(NotifyMsg.NodeLeft msg) {
+        members.removeMember(msg.actorId());
+        assert members.size() >= Config.N : "Not enough node left";
+        return keepSameState();
+    }
+
+    protected AbstractState handleNodeJoined(NotifyMsg.NodeJoined msg) {
+        members.addMember(msg.actorId(), sender());
+        storage.discardNotResponsible(members);
+        return keepSameState();
+    }
+
+    public AbstractState handleUpdate(DataMsg.Update msg) {
+        int reqId = node.getFreshRequestId();
+        substates.put(reqId, new Update(super.node, sender(), msg, reqId));
+        return keepSameState();
+    }
+
+    public AbstractState handleGet(DataMsg.Get msg) {
+        int reqId = node.getFreshRequestId();
+        substates.put(reqId, new Get(super.node, sender(), msg, reqId));
+        return keepSameState();
+    }
+
     protected AbstractState handleWriteLockRequest(NodeDataMsg.WriteLockRequest msg) {
         DataElement elem = storage.getOrInsertEmpty(msg.key());
 
@@ -123,7 +131,6 @@ public class Normal extends AbstractState {
         return keepSameState();
     }
 
-    @Override
     protected AbstractState handleLocksRelease(NodeDataMsg.LocksRelease msg) {
         DataElement elem = storage.get(msg.key());
         // For the null case:
@@ -138,7 +145,6 @@ public class Normal extends AbstractState {
 
     }
 
-    @Override
     protected AbstractState handleReadLockRequest(NodeDataMsg.ReadLockRequest msg) {
         DataElement elem = storage.get(msg.key());
         if (elem == null || !elem.isWriteLocked())
@@ -152,7 +158,6 @@ public class Normal extends AbstractState {
         return keepSameState();
     }
 
-    @Override
     protected AbstractState handleWriteRequest(NodeDataMsg.WriteRequest msg) {
         DataElement elem = storage.get(msg.key());
         if (elem == null)
@@ -167,7 +172,6 @@ public class Normal extends AbstractState {
         return keepSameState();
     }
 
-    @Override
     protected AbstractState handleReadRequest(NodeDataMsg.ReadRequest msg) {
         DataElement elem = storage.get(msg.key());
         if (elem == null)
@@ -182,14 +186,12 @@ public class Normal extends AbstractState {
         return keepSameState();
     }
 
-    @Override
     protected AbstractState handleBootstrapRequest(NodeMsg.BootstrapRequest req) {
         var currentMembers = new HashMap<>(members.getMembers());
         node.sendTo(sender(), new NodeMsg.BootstrapResponse(req.requestId(), currentMembers));
         return keepSameState();
     }
 
-    @Override
     protected AbstractState handleResponsabilityRequest(NodeMsg.ResponsabilityRequest msg) {
 
         HashMap<Integer, SendableData> toSend = new HashMap<>();
@@ -202,7 +204,6 @@ public class Normal extends AbstractState {
         return keepSameState();
     }
 
-    @Override
     protected AbstractState handlePassResponsabilityRequest(NodeMsg.PassResponsabilityRequest msg) {
         storage.refreshIfNeeded(msg.responsabilities());
 
@@ -212,11 +213,8 @@ public class Normal extends AbstractState {
         return keepSameState();
     }
 
-    @Override
     protected AbstractState handleRollbackPassResponsability(NodeMsg.RollbackPassResponsability msg) {
         storage.discardNotResponsible(members);
         return keepSameState();
     }
-
-
 }

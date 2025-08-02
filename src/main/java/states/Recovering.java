@@ -7,6 +7,8 @@ import messages.Message;
 import messages.control.ControlMsg;
 import messages.node_operation.NodeMsg;
 
+import java.io.Serializable;
+
 public class Recovering extends AbstractState {
     private final int reqId;
     private final ActorRef<Message> mainActorRef;
@@ -18,17 +20,27 @@ public class Recovering extends AbstractState {
         sendInitialMsg(bootstrapPeer);
     }
 
-    @Override
-    public NodeState getNodeRepresentation() {
-        return NodeState.RECOVERING;
-    }
-
     private void sendInitialMsg(ActorRef<Message> bootstrapPeer) {
         node.sendTo(bootstrapPeer, new NodeMsg.BootstrapRequest(reqId));
         node.scheduleTimeout(reqId);
     }
 
     @Override
+    public NodeState getNodeRepresentation() {
+        return NodeState.RECOVERING;
+    }
+
+    // HANDLERS
+
+    @Override
+    public AbstractState handle(Serializable message) {
+        return switch (message) {
+            case NodeMsg.BootstrapResponse msg -> handleBootstrapResponse(msg);
+            case NodeMsg.Timeout msg -> handleTimeout(msg);
+            default -> log_unhandled(message);
+        };
+    }
+
     protected AbstractState handleBootstrapResponse(NodeMsg.BootstrapResponse msg) {
         if (msg.requestId() != reqId)
             return ignore();
@@ -40,7 +52,6 @@ public class Recovering extends AbstractState {
         return new Normal(super.node);
     }
 
-    @Override
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
         if (msg.operationId() != reqId)
             return ignore();

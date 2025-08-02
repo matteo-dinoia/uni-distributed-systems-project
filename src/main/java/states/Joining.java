@@ -9,8 +9,10 @@ import messages.control.ControlMsg;
 import messages.node_operation.NodeMsg;
 import messages.node_operation.NotifyMsg;
 import utils.Config;
+import utils.structs.Editable;
 import utils.structs.Ring;
 
+import java.io.Serializable;
 import java.util.*;
 
 /**
@@ -19,19 +21,6 @@ import java.util.*;
  * 2) RESPONSIBILITIES: request data for keys this node will now serve
  */
 public class Joining extends AbstractState {
-    static class EditableBoolean {
-        public boolean valid;
-
-        public EditableBoolean(boolean valid) {
-            this.valid = valid;
-        }
-
-        @Override
-        public String toString() {
-            return "" + this.valid;
-        }
-    }
-
     private enum JoinPhase {BOOTSTRAP, RESPONSIBILITIES}
 
     private final ActorRef<Message> mainActorRef;
@@ -39,7 +28,7 @@ public class Joining extends AbstractState {
 
     // key: (data, how many replicas confirmed it)
     private final HashMap<Integer, SendableData> receivedData = new HashMap<>();
-    private final Ring<EditableBoolean> responded = new Ring<>();
+    private final Ring<Editable<Boolean>> responded = new Ring<>();
     private final int reqId;
 
     /**
@@ -59,7 +48,18 @@ public class Joining extends AbstractState {
         return NodeState.JOINING;
     }
 
+    // HANDLERS
+
     @Override
+    public AbstractState handle(Serializable message) {
+        return switch (message) {
+            case NodeMsg.BootstrapResponse msg -> handleBootstrapResponse(msg);
+            case NodeMsg.Timeout msg -> handleTimeout(msg);
+            case NodeMsg.ResponsabilityResponse msg -> handleResponsabilityResponse(msg);
+            default -> log_unhandled(message);
+        };
+    }
+
     protected AbstractState handleBootstrapResponse(NodeMsg.BootstrapResponse msg) {
         if (msg.requestId() != reqId || phase != JoinPhase.BOOTSTRAP)
             return ignore();
@@ -74,17 +74,6 @@ public class Joining extends AbstractState {
         return keepSameState();
     }
 
-    private void createResponded(Map<Integer, ActorRef<Message>> otherNodes, Set<ActorRef<Message>> toCommunicate) {
-        HashMap<Integer, EditableBoolean> map = new HashMap<>();
-        for (var entry : otherNodes.entrySet()) {
-            boolean communicate = toCommunicate.contains(entry.getValue());
-            map.put(entry.getKey(), new EditableBoolean(!communicate));
-        }
-
-        responded.replaceAll(map);
-    }
-
-    @Override
     protected AbstractState handleTimeout(NodeMsg.Timeout msg) {
         if (msg.operationId() != reqId)
             return ignore();
@@ -94,7 +83,6 @@ public class Joining extends AbstractState {
         return new Left(super.node);
     }
 
-    @Override
     protected AbstractState handleResponsabilityResponse(NodeMsg.ResponsabilityResponse msg) {
         if (msg.requestId() != reqId || phase != JoinPhase.RESPONSIBILITIES)
             return ignore();
@@ -105,6 +93,18 @@ public class Joining extends AbstractState {
             return completeJoin();
 
         return keepSameState();
+    }
+
+    // PRIVATE METHODS
+
+    private void createResponded(Map<Integer, ActorRef<Message>> otherNodes, Set<ActorRef<Message>> toCommunicate) {
+        HashMap<Integer, Editable<Boolean>> map = new HashMap<>();
+        for (var entry : otherNodes.entrySet()) {
+            boolean communicate = toCommunicate.contains(entry.getValue());
+            map.put(entry.getKey(), new Editable<>(!communicate));
+        }
+
+        responded.replaceAll(map);
     }
 
     private boolean enoughResponded() {
