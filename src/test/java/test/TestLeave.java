@@ -114,7 +114,6 @@ public class TestLeave {
             assert !test.leave(4) : "Leave should fail due to timeout by triggering rollback";
 
             var storages = test.getNodeStorages();
-            storages.printKeyStatus(key);
             storages.assertValid();
             storages.assertLatest(key, 0);
         }

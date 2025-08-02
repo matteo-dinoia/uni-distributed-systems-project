@@ -65,6 +65,7 @@ public abstract class AbstractState {
     public final AbstractState handle(ActorRef<Message> sender, Serializable message) {
         this.sender = sender;
 
+        // To avoid printing it twice
         if (getNodeRepresentation() != NodeState.SUB)
             Utils.debugPrint("==> NODE " + node.id() + " (" + getNodeRepresentation() + ") RECEIVED from " + sender().path().name() + " " + message);
 
