@@ -48,8 +48,8 @@ public class Tester implements AutoCloseable {
             group.put(id, testKit.spawn(NodeActor.create(id), "Node" + id));
 
         TestProbe<Message> probe = getProbe();
-        for (ActorRef<Message> node : group.getHashMap().values())
-            send(probe, node, new StatusMsg.InitialMembers(group.getHashMap()));
+        for (ActorRef<Message> node : group.getMap().values())
+            send(probe, node, new StatusMsg.InitialMembers(group.getMap()));
 
         for (int i = 0; i < group.size(); i++) {
             Serializable content = probe.receiveMessage(TIMEOUT_PROBE).content();
@@ -105,10 +105,10 @@ public class Tester implements AutoCloseable {
         Map<Integer, Map<Integer, SendableData.Debug>> res = new HashMap<>();
         TestProbe<Message> probe = getProbe();
 
-        for (ActorRef<Message> node : group.getHashMap().values())
+        for (ActorRef<Message> node : group.getMap().values())
             send(probe, node, new ControlMsg.DebugCurrentStorageRequest());
 
-        for (var _ : group.getHashMap().keySet()) {
+        for (var _ : group.getMap().keySet()) {
             Serializable content = probe.receiveMessage(TIMEOUT_PROBE).content();
             if (!(content instanceof ControlMsg.DebugCurrentStorageResponse(
                     int id, Map<Integer, SendableData.Debug> data
@@ -269,7 +269,7 @@ public class Tester implements AutoCloseable {
 
     @Override
     public void close() {
-        for (var node : group.getHashMap().values())
+        for (var node : group.getMap().values())
             testKit.stop(node);
     }
 }

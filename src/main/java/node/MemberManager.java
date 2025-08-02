@@ -36,8 +36,8 @@ public class MemberManager {
 
     // Get Lists
 
-    public HashMap<Integer, ActorRef<Message>> getMembers() {
-        return this.memberList.getHashMap();
+    public Map<Integer, ActorRef<Message>> getMembers() {
+        return this.memberList.getMap();
     }
 
     public ArrayList<ActorRef<Message>> getNodeToCommunicateForJoin() {
@@ -70,7 +70,7 @@ public class MemberManager {
     }
 
     public boolean willBeResponsible(Integer newNodeId, ActorRef<Message> newNode, Integer key) {
-        assert !memberList.getHashMap().containsKey(newNodeId) : "Trying to join an already existing id";
+        assert !memberList.getMap().containsKey(newNodeId) : "Trying to join an already existing id";
         memberList.put(newNodeId, newNode);
         boolean res = isResponsible(newNode, key);
         memberList.remove(newNodeId);

@@ -1,5 +1,6 @@
 package utils;
 
+
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -89,7 +90,7 @@ public class Ring<T> {
         old.right.left = old.left;
     }
 
-    public HashMap<Integer, T> getHashMap() {
+    public Map<Integer, T> getMap() {
         HashMap<Integer, T> res = new HashMap<>();
         for (var entry : ring.entrySet())
             res.put(entry.getKey(), entry.getValue().value);
