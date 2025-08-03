@@ -1,8 +1,8 @@
 package tester;
 
-import actor.NodeActor;
-import actor.NodeState;
-import actor.node.storage.SendableData;
+import node.actor.NodeActor;
+import node.actor.NodeState;
+import node.storage.SendableData;
 import akka.actor.testkit.typed.javadsl.ActorTestKit;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import akka.actor.testkit.typed.javadsl.TestProbe;

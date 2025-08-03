@@ -1,6 +1,6 @@
 package test;
 
-import actor.NodeState;
+import node.actor.NodeState;
 import akka.actor.testkit.typed.javadsl.TestKitJunitResource;
 import org.junit.ClassRule;
 import org.junit.Test;
