@@ -1,4 +1,4 @@
-package actor.node.storage;
+package node.storage;
 
 import akka.actor.typed.ActorRef;
 import messages.Message;

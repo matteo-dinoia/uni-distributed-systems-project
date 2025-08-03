@@ -1,7 +1,7 @@
 package tester;
 
-import actor.node.storage.DataElement;
-import actor.node.storage.SendableData;
+import node.storage.DataElement;
+import node.storage.SendableData;
 import utils.Config;
 import utils.structs.Pair;
 import utils.structs.Ring;

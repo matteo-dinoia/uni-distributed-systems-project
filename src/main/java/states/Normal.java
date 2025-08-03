@@ -1,9 +1,9 @@
 package states;
 
-import actor.NodeState;
-import actor.node.Node;
-import actor.node.storage.DataElement;
-import actor.node.storage.SendableData;
+import node.actor.NodeState;
+import node.Node;
+import node.storage.DataElement;
+import node.storage.SendableData;
 import messages.client.DataMsg;
 import messages.client.StatusMsg;
 import messages.control.ControlMsg;

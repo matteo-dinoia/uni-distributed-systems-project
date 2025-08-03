@@ -1,7 +1,7 @@
 package states.sub;
 
-import actor.NodeState;
-import actor.node.Node;
+import node.actor.NodeState;
+import node.Node;
 import akka.actor.typed.ActorRef;
 import messages.Message;
 import messages.client.DataMsg;

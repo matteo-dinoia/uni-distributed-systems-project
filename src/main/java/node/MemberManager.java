@@ -1,4 +1,4 @@
-package actor.node;
+package node;
 
 import akka.actor.typed.ActorRef;
 import messages.Message;

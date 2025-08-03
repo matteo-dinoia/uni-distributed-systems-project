@@ -1,7 +1,7 @@
 package states;
 
-import actor.NodeState;
-import actor.node.Node;
+import node.actor.NodeState;
+import node.Node;
 import messages.client.StatusMsg;
 
 import java.io.Serializable;

@@ -1,9 +1,9 @@
 package states;
 
-import actor.NodeState;
-import actor.node.MemberManager;
-import actor.node.Node;
-import actor.node.storage.DataStorage;
+import node.actor.NodeState;
+import node.MemberManager;
+import node.Node;
+import node.storage.DataStorage;
 import akka.actor.typed.ActorRef;
 import messages.Message;
 import messages.control.ControlMsg;
