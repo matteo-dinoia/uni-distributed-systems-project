@@ -23,8 +23,8 @@ public class Node {
     private final NodeInfo info;
     private int lastRequestId;
 
-    public Node(int selfId, ActorContext<Message> context) {
-        this.info = new NodeInfo(selfId, context);
+    public Node(int selfId, ActorContext<Message> context, Config config) {
+        this.info = new NodeInfo(selfId, context, config);
         this.members = new MemberManager(info);
         this.storage = new DataStorage(info);
         this.lastRequestId = -1;
@@ -38,6 +38,10 @@ public class Node {
 
     public DataStorage storage() {
         return this.storage;
+    }
+
+    public Config config() {
+        return info.config();
     }
 
     public int getFreshRequestId() {
@@ -70,13 +74,13 @@ public class Node {
     public void sendTo(ActorRef<Message> dest, Serializable msg) {
         // simulate network delays using sleep
         try {
-            Thread.sleep(rnd.nextLong(Config.MAX_DELAY.toMillis()));
+            Thread.sleep(rnd.nextLong(info.config().MAX_DELAY().toMillis()));
         } catch (InterruptedException _) {
-            System.err.println("Cannot sleep for some reason");
         }
 
         // It is allowed sending to himself
-        Utils.debugPrint("<== NODE " + info.id() + " SENT TO '" + dest.path().name() + "' " + msg.toString());
+        Utils.debugPrint(info.config().DEBUG(),
+                "<== NODE " + info.id() + " SENT TO '" + dest.path().name() + "' " + msg.toString());
         dest.tell(new Message(info.self(), msg));
     }
 
@@ -86,10 +90,11 @@ public class Node {
 
     public void scheduleTimeout(int operationId) {
         var timeoutMsg = new Message(info.self(), new NodeMsg.Timeout(operationId));
-        Utils.debugPrint("<~~ NODE " + info.id() + " scheduled a timeout for operation " + operationId);
+        Utils.debugPrint(info.config().DEBUG(),
+                "<~~ NODE " + info.id() + " scheduled a timeout for operation " + operationId);
 
         info.context().getSystem().scheduler().scheduleOnce(
-                Config.TIMEOUT,
+                info.config().TIMEOUT(),
                 () -> info.self().tell(timeoutMsg),
                 info.context().getExecutionContext()
         );

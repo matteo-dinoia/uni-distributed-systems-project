@@ -13,7 +13,7 @@ import java.util.Set;
 
 import static java.lang.System.out;
 
-public record StorageTester(Map<Integer, Map<Integer, SendableData.Debug>> nodesData) {
+public record StorageTester(Map<Integer, Map<Integer, SendableData.Debug>> nodesData, Config config) {
     public void assertValid() {
         assertValid(new HashSet<>());
     }
@@ -61,7 +61,7 @@ public record StorageTester(Map<Integer, Map<Integer, SendableData.Debug>> nodes
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean isResponsabile(Ring<Integer> group, int key, Integer node) {
-        var responsible = group.getInterval(group.getCeilKey(key), 0, Config.N - 1);
+        var responsible = group.getInterval(group.getCeilKey(key), 0, config.N() - 1);
         return responsible.contains(node);
     }
 
@@ -120,7 +120,7 @@ public record StorageTester(Map<Integer, Map<Integer, SendableData.Debug>> nodes
         for (var max : maxVersionPerKey.entrySet()) {
             int key = max.getKey();
             int count = max.getValue().getRight();
-            assert count >= Config.W : "Quorum not reached or lost on key " + key;
+            assert count >= config.W() : "Quorum not reached or lost on key " + key;
         }
     }
 
@@ -150,7 +150,7 @@ public record StorageTester(Map<Integer, Map<Integer, SendableData.Debug>> nodes
         }
 
         assert maxVersion == version : "The current version is " + maxVersion + " while expecting " + version;
-        assert nLatest >= Config.W : "Latest version of key " + key + " has broken quorum (or wrong version)";
+        assert nLatest >= config.W() : "Latest version of key " + key + " has broken quorum (or wrong version)";
     }
 
     public void assertMissing(int key) {

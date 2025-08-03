@@ -7,6 +7,7 @@ import actor.node.storage.DataStorage;
 import akka.actor.typed.ActorRef;
 import messages.Message;
 import messages.control.ControlMsg;
+import utils.Config;
 import utils.Utils;
 
 import java.io.Serializable;
@@ -15,11 +16,13 @@ import java.io.Serializable;
 public abstract class AbstractState {
     protected final MemberManager members;
     protected final DataStorage storage;
+    protected final Config config;
     protected final Node node;
     private ActorRef<Message> sender = null;
 
     protected AbstractState(Node node) {
         this.node = node;
+        this.config = node.config();
         this.storage = node.storage();
         this.members = node.members();
     }
@@ -67,7 +70,8 @@ public abstract class AbstractState {
 
         // To avoid printing it twice
         if (getNodeRepresentation() != NodeState.SUB)
-            Utils.debugPrint("==> NODE " + node.id() + " (" + getNodeRepresentation() + ") RECEIVED from " + sender().path().name() + " " + message);
+            Utils.debugPrint(config.DEBUG(),
+                    "==> NODE " + node.id() + " (" + getNodeRepresentation() + ") RECEIVED from " + sender().path().name() + " " + message);
 
         try {
             return switch (message) {

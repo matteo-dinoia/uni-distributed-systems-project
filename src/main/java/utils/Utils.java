@@ -7,8 +7,8 @@ public class Utils {
     public static <T> void ignore(T ignored) {
     }
 
-    public static void debugPrint(String s) {
-        if (Config.DEBUG)
+    public static void debugPrint(boolean debug, String s) {
+        if (debug)
             out.println(s);
     }
 }

@@ -2,7 +2,6 @@ package actor.node;
 
 import akka.actor.typed.ActorRef;
 import messages.Message;
-import utils.Config;
 import utils.structs.Ring;
 
 import java.util.ArrayList;
@@ -12,10 +11,12 @@ import java.util.Map;
 public class MemberManager {
     private final NodeInfo node;
     private final Ring<ActorRef<Message>> memberList;
+    private final int N;
 
 
     public MemberManager(NodeInfo nodeInfo) {
         this.node = nodeInfo;
+        this.N = node.config().N();
         this.memberList = new Ring<>();
         this.memberList.put(nodeInfo.id(), nodeInfo.self());
     }
@@ -40,7 +41,7 @@ public class MemberManager {
     }
 
     public ArrayList<ActorRef<Message>> getNodeToCommunicateForJoin() {
-        var list = new ArrayList<>(memberList.getInterval(node.id(), Config.N - 1, Config.N - 1));
+        var list = new ArrayList<>(memberList.getInterval(node.id(), N - 1, N - 1));
         list.remove(node.self());
         return list;
     }
@@ -50,8 +51,8 @@ public class MemberManager {
     public List<ActorRef<Message>> getResponsibles(int key) {
         Integer firstResponsible = memberList.getCeilKey(key);
         assert firstResponsible != null;
-        var res = memberList.getInterval(firstResponsible, 0, Config.N - 1);
-        assert res.size() >= Config.N : "Not big enough responsible to send";
+        var res = memberList.getInterval(firstResponsible, 0, N - 1);
+        assert res.size() >= N : "Not big enough responsible to send";
         return res;
     }
 
@@ -60,10 +61,10 @@ public class MemberManager {
         Integer firstResponsible = memberList.getFloorKey(key);
         assert firstResponsible != null;
 
-        ArrayList<ActorRef<Message>> list = new ArrayList<>(memberList.getInterval(firstResponsible, 0, Config.N));
+        ArrayList<ActorRef<Message>> list = new ArrayList<>(memberList.getInterval(firstResponsible, 0, N));
         list.remove(node.self());
 
-        assert list.size() >= Config.N : "List of responsible is smaller than N";
+        assert list.size() >= N : "List of responsible is smaller than N";
         return list;
     }
 
